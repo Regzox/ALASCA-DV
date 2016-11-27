@@ -1,1 +1,0 @@
-java -ea -Xms2m -cp 'jars/*' -Djava.security.manager -Djava.security.policy=dcvm.policy fr.upmc.components.registry.GlobalRegistry config.xml
