@@ -6,6 +6,15 @@ import fr.upmc.datacenter.hardware.computers.Computer;
 import fr.upmc.datacenter.software.applicationvm.ApplicationVM;
 import fr.upmc.datacenter.software.dispatcher.Dispatcher;
 import fr.upmc.datacenterclient.requestgenerator.RequestGenerator;
+import fr.upmc.external.software.applications.AbstractApplication;
+
+/**
+ * Interface de gestion du contrôleur d'admissions.
+ * Synthétise les méthodes pouvant avoir une action sur le fonctionnement du contrôleur d'admissions.
+ * 
+ * @author Daniel RADEAU
+ *
+ */
 
 public interface AdmissionControllerManagementI
 	extends		
@@ -55,7 +64,9 @@ public interface AdmissionControllerManagementI
 	 * 
 	 * @param inter
 	 */
-	void submitApplication(Class<?> inter) throws Exception;
+	void submitApplication(
+			AbstractApplication application, 
+			Class<?> submissionInterface) throws Exception;
 	
 	/**
 	 * Oblige tous les répartiteurs de requêtes à ajouter une nouvelle AVM à leur boucle de traitement.
@@ -69,4 +80,63 @@ public interface AdmissionControllerManagementI
 	 * @throws Exception
 	 */
 	void forceApplicationVMIncrementation() throws Exception;
+	
+	/**
+	 * Stop l'emission de données dynamiques depuis les fournisseurs
+	 */
+	
+	void stopDynamicStateDataPushing() throws Exception;
+	
+	/**
+	 * Programme une émission de donnée dynamiques périodique en millisecondes.
+	 * Stop le pushing existant pour redéfinir l'intervalle d'émission par la suite.
+	 * @param milliseconds
+	 */
+	
+	void startDynamicStateDataPushing(int milliseconds) throws Exception;
+
+	/**
+	 * Augmente la fréquence du coeur alloué passé en paramètre 
+	 * 
+	 * @param allocatedCore
+	 * @return
+	 */
+	
+	void increaseCoreFrequency(String computerURI, String processorURI, Integer coreNo) throws Exception;
+	
+	/**
+	 * Diminue la fréquence du coeur alloué passé en paramètre
+	 * 
+	 * @param allocatedCore
+	 * @return
+	 */
+	
+	void decreaseCoreFrequency(String computerURI, String processorURI, Integer coreNo) throws Exception;
+	
+	/**
+	 * Augmente la fréquence d'un processeur 
+	 * 
+	 * @param computerURI
+	 * @param processorURI
+	 * @return
+	 * @throws Exception
+	 */
+	
+	void increaseProcessorFrenquency(String computerURI, String processorURI) throws Exception;
+	
+	void decreaseProcessorFrenquency(String computerURI, String processorURI) throws Exception;
+	
+	void increaseProcessorsFrenquencies(String computerURI) throws Exception;
+	
+	void decreaseProcessorsFrenquencies(String computerURI) throws Exception;
+	
+	void allocateCores(String computerURI, String avmURI, int cores) throws Exception;
+	
+	void releaseCores(String compterURI, String avmURI, int cores) throws Exception;
+	
+//	void increaseAVMs(String dispatcherURI);
+//	
+//	void decreaseAVMs(String dispatcherURI);
+	
+	
 }

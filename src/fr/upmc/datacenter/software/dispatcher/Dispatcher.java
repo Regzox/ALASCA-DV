@@ -48,7 +48,7 @@ public class Dispatcher extends AbstractComponent
 	 * stoppé dans la méthode forward (arrivée de notification).
 	 */
 	
-	protected double alpha = 0.7;
+	protected double alpha = 0.33; // Donne un poids de 1/3 au nouveau résultat contre 2/3 pour la moyenne précédente
 	protected Map<String, ExponentialAverage> exponentialAverages = new HashMap<>();
 	protected Map<String, ChronometerI> requestChronometers = new HashMap<>();
 	
@@ -324,7 +324,8 @@ public class Dispatcher extends AbstractComponent
 			
 			pendings.remove(rsopURI);
 			performed.remove(rsopURI);
-			terminating.remove(rsopURI);			
+			terminating.remove(rsopURI);
+			exponentialAverages.remove(rsopURI);
 			rsop.doDisconnection();
 			rsop.unpublishPort();
 			removePort(rsop);

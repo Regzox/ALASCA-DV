@@ -14,8 +14,9 @@ public interface WebServerI {
 	 * 
 	 * @param request
 	 * @return
+	 * @throws Exception 
 	 */
-	String getWebPage(HttpRequestI request);
+	String getWebPage(HttpRequestI request) throws Exception;
 	
 	
 	/**
@@ -24,6 +25,6 @@ public interface WebServerI {
 	 * @param request
 	 * @return
 	 */
-	Boolean checkConnection(HttpRequestI request);
+	Boolean checkConnection(HttpRequestI request) throws Exception;
 	
 }

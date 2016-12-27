@@ -3,6 +3,7 @@ package fr.upmc.datacenter.software.admissioncontroller.ports;
 import fr.upmc.components.ComponentI;
 import fr.upmc.components.ports.AbstractOutboundPort;
 import fr.upmc.datacenter.software.admissioncontroller.interfaces.AdmissionControllerManagementI;
+import fr.upmc.external.software.applications.AbstractApplication;
 
 /**
  * Port de sortie du contrôleur d'admission. Permet l'appel des méthodes offertes par les composants disposant 
@@ -40,12 +41,74 @@ public class AdmissionControllerManagementOutboundPort
 	}
 	
 	@Override
-	public void submitApplication(Class<?> inter) throws Exception {
-		((AdmissionControllerManagementI) this.connector).submitApplication(inter);
+	public void submitApplication(
+			AbstractApplication application,
+			Class<?> submissionInterface) throws Exception {
+		((AdmissionControllerManagementI) this.connector).submitApplication(application, submissionInterface);
 	}
 	
 	@Override
 	public void forceApplicationVMIncrementation() throws Exception {
 		((AdmissionControllerManagementI) this.connector).forceApplicationVMIncrementation();
 	}
+
+	@Override
+	public void stopDynamicStateDataPushing() throws Exception {
+		((AdmissionControllerManagementI) this.connector).stopDynamicStateDataPushing();
+	}
+
+	@Override
+	public void startDynamicStateDataPushing(int milliseconds) throws Exception {
+		((AdmissionControllerManagementI) this.connector).startDynamicStateDataPushing(milliseconds);
+	}
+
+	@Override
+	public void increaseCoreFrequency(String computerURI, String processorURI, Integer coreNo) throws Exception {
+		((AdmissionControllerManagementI) this.connector).increaseCoreFrequency(computerURI, processorURI, coreNo);
+	}
+
+	@Override
+	public void decreaseCoreFrequency(String computerURI, String processorURI, Integer coreNo) throws Exception {
+		((AdmissionControllerManagementI) this.connector).decreaseCoreFrequency(computerURI, processorURI, coreNo);
+	}
+
+	@Override
+	public void increaseProcessorFrenquency(String computerURI, String processorURI) throws Exception {
+		((AdmissionControllerManagementI) this.connector).increaseProcessorFrenquency(computerURI, processorURI);
+	}
+
+	@Override
+	public void decreaseProcessorFrenquency(String computerURI, String processorURI) throws Exception {
+		((AdmissionControllerManagementI) this.connector).decreaseProcessorFrenquency(computerURI, processorURI);
+	}
+
+	@Override
+	public void increaseProcessorsFrenquencies(String computerURI) throws Exception {
+		((AdmissionControllerManagementI) this.connector).increaseProcessorsFrenquencies(computerURI);
+	}
+
+	@Override
+	public void decreaseProcessorsFrenquencies(String computerURI) throws Exception {
+		((AdmissionControllerManagementI) this.connector).decreaseProcessorsFrenquencies(computerURI);
+	}
+
+	@Override
+	public void allocateCores(String computerURI, String avmURI, int cores) throws Exception {
+
+	}
+
+	@Override
+	public void releaseCores(String compterURI, String avmURI, int cores) throws Exception {
+
+	}
+
+//	@Override
+//	public void increaseAVMs(String dispatcherURI) {
+//		
+//	}
+//
+//	@Override
+//	public void decreaseAVMs(String dispatcherURI) {
+//
+//	}
 }

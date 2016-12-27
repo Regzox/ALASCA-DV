@@ -5,6 +5,7 @@ import fr.upmc.components.ComponentI.ComponentService;
 import fr.upmc.components.ports.AbstractInboundPort;
 import fr.upmc.datacenter.software.admissioncontroller.AdmissionController;
 import fr.upmc.datacenter.software.admissioncontroller.interfaces.AdmissionControllerManagementI;
+import fr.upmc.external.software.applications.AbstractApplication;
 
 /**
  * Port d'entrée de management du contrôleur d'admission. 
@@ -64,14 +65,16 @@ AdmissionControllerManagementI
 	}
 
 	@Override
-	public void submitApplication(final Class<?> inter) throws Exception {
+	public void submitApplication(
+			AbstractApplication application,
+			Class<?> submissionInterface) throws Exception {
 		final AdmissionController admissionController = (AdmissionController) this.owner;
 
 		admissionController.handleRequestSync(new ComponentService<Void>() {
 
 			@Override
 			public Void call() throws Exception {
-				admissionController.submitApplication(inter);
+				admissionController.submitApplication(application, submissionInterface);
 				return null;
 			}
 
@@ -94,6 +97,149 @@ AdmissionControllerManagementI
 
 		});
 	}
+
+	@Override
+	public void stopDynamicStateDataPushing() throws Exception {
+		final AdmissionController admissionController = (AdmissionController) this.owner;
+
+		admissionController.handleRequestSync(new ComponentService<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				admissionController.stopDynamicStateDataPushing();
+				return null;
+			}
+
+
+		});
+	}
+
+	@Override
+	public void startDynamicStateDataPushing(int milliseconds) throws Exception {
+		final AdmissionController admissionController = (AdmissionController) this.owner;
+
+		admissionController.handleRequestSync(new ComponentService<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				admissionController.startDynamicStateDataPushing(milliseconds);
+				return null;
+			}
+
+
+		});
+	}
+
+	@Override
+	public void increaseCoreFrequency(String computerURI, String processorURI, Integer coreNo) throws Exception {
+		final AdmissionController admissionController = (AdmissionController) this.owner;
+
+		admissionController.handleRequestSync(new ComponentService<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				admissionController.increaseCoreFrequency(computerURI, processorURI, coreNo);
+				return null;
+			}
+
+		});
+	}
+
+	@Override
+	public void decreaseCoreFrequency(String computerURI, String processorURI, Integer coreNo) throws Exception {
+		final AdmissionController admissionController = (AdmissionController) this.owner;
+
+		admissionController.handleRequestSync(new ComponentService<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				admissionController.decreaseCoreFrequency(computerURI, processorURI, coreNo);
+				return null;
+			}
+
+		});
+	}
+
+	@Override
+	public void increaseProcessorFrenquency(String computerURI, String processorURI) throws Exception {
+		final AdmissionController admissionController = (AdmissionController) this.owner;
+
+		admissionController.handleRequestSync(new ComponentService<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				admissionController.increaseProcessorFrenquency(computerURI, processorURI);
+				return null;
+			}
+
+		});
+	}
+
+	@Override
+	public void decreaseProcessorFrenquency(String computerURI, String processorURI) throws Exception {
+		final AdmissionController admissionController = (AdmissionController) this.owner;
+
+		admissionController.handleRequestSync(new ComponentService<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				admissionController.decreaseProcessorFrenquency(computerURI, processorURI);
+				return null;
+			}
+
+		});
+	}
+
+	@Override
+	public void increaseProcessorsFrenquencies(String computerURI) throws Exception {
+		final AdmissionController admissionController = (AdmissionController) this.owner;
+
+		admissionController.handleRequestSync(new ComponentService<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				admissionController.increaseProcessorsFrenquencies(computerURI);
+				return null;
+			}
+
+
+		});
+	}
+
+	@Override
+	public void decreaseProcessorsFrenquencies(String computerURI) throws Exception {
+		final AdmissionController admissionController = (AdmissionController) this.owner;
+
+		admissionController.handleRequestSync(new ComponentService<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				admissionController.decreaseProcessorsFrenquencies(computerURI);
+				return null;
+			}
+
+		});
+	}
+
+	@Override
+	public void allocateCores(String computerURI, String avmURI, int cores) throws Exception {
+
+	}
+
+	@Override
+	public void releaseCores(String compterURI, String avmURI, int cores) throws Exception {
+
+	}
+
+//	@Override
+//	public void increaseAVMs(String dispatcherURI) {
+//		
+//	}
+//
+//	@Override
+//	public void decreaseAVMs(String dispatcherURI) {
+//
+//	}
 
 
 }
