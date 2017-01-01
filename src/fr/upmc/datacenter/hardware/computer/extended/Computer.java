@@ -3,17 +3,17 @@ package fr.upmc.datacenter.hardware.computer.extended;
 import java.util.Map;
 import java.util.Set;
 
-import fr.upmc.datacenter.software.applicationvm.extended.interfaces.CoreReleasingI;
+import fr.upmc.datacenter.hardware.computer.extended.interfaces.ComputerCoreReleasingI;
+import fr.upmc.datacenter.hardware.computer.extended.ports.ComputerCoreReleasingInboundPort;
 
 public class Computer 
 	extends 
 		fr.upmc.datacenter.hardware.computers.Computer
 	implements
-		CoreReleasingI
+		ComputerCoreReleasingI
 {
 
-	protected String	cripURI;
-//						crnopURI;
+	protected String	ccripURI;
 	
 	public Computer(	String computerURI, 
 						Set<Integer> possibleFrequencies, 
@@ -26,7 +26,6 @@ public class Computer
 						String computerStaticStateDataInboundPortURI,
 						String computerDynamicStateDataInboundPortURI,
 						String computerCoreReleasingInboundPortURI
-//						String computerCoreReleasingNotificationOutboundPortURI
 						) throws Exception 
 	{
 		super(	computerURI, 
@@ -40,26 +39,14 @@ public class Computer
 				computerStaticStateDataInboundPortURI,
 				computerDynamicStateDataInboundPortURI);
 		
-		cripURI = computerCoreReleasingInboundPortURI;
-//		crnopURI = computerCoreReleasingNotificationOutboundPortURI;
-	}
-
-	@Override
-	public void releaseCore() throws Exception {
-		// TODO Auto-generated method stub
+		ccripURI = computerCoreReleasingInboundPortURI;
 		
-	}
-
-	@Override
-	public void releaseCores(int cores) throws Exception {
-		// TODO Auto-generated method stub
+		if (!offeredInterfaces.contains(ComputerCoreReleasingI.class))
+			offeredInterfaces.add(ComputerCoreReleasingI.class);
 		
+		ComputerCoreReleasingInboundPort ccrip = new ComputerCoreReleasingInboundPort(computerCoreReleasingInboundPortURI, ComputerCoreReleasingI.class, this);
+		addPort(ccrip);
+		ccrip.publishPort();
 	}
-
-	@Override
-	public void releaseMaximumCores() throws Exception {
-		// TODO Auto-generated method stub
-		
-	}
-
+	
 }

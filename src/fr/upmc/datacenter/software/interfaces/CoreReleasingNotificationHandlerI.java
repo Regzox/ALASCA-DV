@@ -1,5 +1,7 @@
 package fr.upmc.datacenter.software.interfaces;
 
+import fr.upmc.datacenter.hardware.computers.Computer.AllocatedCore;
+
 /**
  * Interface de gestion des libérations de coeurs 
  * 
@@ -17,7 +19,9 @@ public interface CoreReleasingNotificationHandlerI {
 	 * de la durée de cette même tâche.
 	 * 
 	 * @param avmURI
+	 * @param allocatedCore
+	 * @throws Exception 
 	 */
 	
-	void acceptCoreReleasing(String avmURI);
+	void acceptCoreReleasing(String avmURI, AllocatedCore allocatedCore) throws Exception;
 }

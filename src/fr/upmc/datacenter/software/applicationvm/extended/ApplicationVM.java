@@ -7,8 +7,8 @@ import java.util.Random;
 import fr.upmc.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.upmc.datacenter.hardware.processors.ports.ProcessorServicesNotificationInboundPort;
 import fr.upmc.datacenter.hardware.processors.ports.ProcessorServicesOutboundPort;
-import fr.upmc.datacenter.software.applicationvm.extended.interfaces.CoreReleasingI;
-import fr.upmc.datacenter.software.applicationvm.extended.ports.CoreReleasingInboundPort;
+import fr.upmc.datacenter.software.applicationvm.extended.interfaces.ApplicationVMCoreReleasingI;
+import fr.upmc.datacenter.software.applicationvm.extended.ports.ApplicationVMCoreReleasingInboundPort;
 import fr.upmc.datacenter.software.applicationvm.interfaces.TaskI;
 import fr.upmc.datacenter.software.interfaces.CoreReleasingNotificationI;
 import fr.upmc.datacenter.software.ports.CoreReleasingNotificationInboundPort;
@@ -16,7 +16,7 @@ import fr.upmc.datacenter.software.ports.CoreReleasingNotificationOutboundPort;
 
 /**
  * Extension de la classe {@link fr.upmc.datacenter.software.applicationvm.ApplicationVM}.
- * Il est maintenant possible de réaliser des désallocation de coeurs par le biais du port {@link CoreReleasingInboundPort}.
+ * Il est maintenant possible de réaliser des désallocation de coeurs par le biais du port {@link ApplicationVMCoreReleasingInboundPort}.
  * Les coeurs à stopper sont placés dans une liste de coeurs en attente de terminaison.
  * En interne à chaque notification de requête les coeurs de la liste sont observés pour voir lequel est bien passé en idle.
  * Les coeurs en attente de terminaison ne peuvent plus être utilisés pour traiter une nouvelle requête.
@@ -35,11 +35,11 @@ public class ApplicationVM
 	extends 
 		fr.upmc.datacenter.software.applicationvm.ApplicationVM
 	implements 
-		CoreReleasingI
+		ApplicationVMCoreReleasingI
 {
 	protected List<AllocatedCore> releasing;				// Liste des coeurs en cours de libération
 	protected CoreReleasingNotificationOutboundPort crnop;	// Port de notification des terminaison de coeurs
-	protected CoreReleasingInboundPort crip;				// Port de demande de terminaison de coeurs
+	protected ApplicationVMCoreReleasingInboundPort crip;				// Port de demande de terminaison de coeurs
 
 	public ApplicationVM(	String vmURI,
 							String applicationVMManagementInboundPortURI,
@@ -54,11 +54,11 @@ public class ApplicationVM
 				requestNotificationOutboundPortURI );
 		releasing = new ArrayList<>();
 		
-		if (!offeredInterfaces.contains(CoreReleasingI.class))
-			offeredInterfaces.add(CoreReleasingI.class);
+		if (!offeredInterfaces.contains(ApplicationVMCoreReleasingI.class))
+			offeredInterfaces.add(ApplicationVMCoreReleasingI.class);
 		
-		crip = new CoreReleasingInboundPort(	coreReleasingInboundPortURI, 
-												CoreReleasingI.class, 
+		crip = new ApplicationVMCoreReleasingInboundPort(	coreReleasingInboundPortURI, 
+												ApplicationVMCoreReleasingI.class, 
 												this);
 		addPort(crip);
 		crip.publishPort();
@@ -148,7 +148,7 @@ public class ApplicationVM
 			 * Notification d'une libération de coeur
 			 */
 			
-			crnop.notifyCoreReleasing(this.vmURI);
+			crnop.notifyCoreReleasing(this.vmURI, allocatedCore);
 		}
 		
 	}

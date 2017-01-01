@@ -1,6 +1,6 @@
 package fr.upmc.datacenter.software.applicationvm.extended.interfaces;
 
-public interface CoreReleasingI {
+public interface ApplicationVMCoreReleasingI {
 	
 	/**
 	 * Permet de libérer un coeur. La libération d'un coeur doit être faite de manière atomique.

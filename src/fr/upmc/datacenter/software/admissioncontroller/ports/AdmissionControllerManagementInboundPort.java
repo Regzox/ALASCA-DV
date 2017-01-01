@@ -33,7 +33,7 @@ AdmissionControllerManagementI
 	}
 
 	@Override
-	public void connectToComputer(final String computerURI, final String csipURI, final String cssdipURI, final String cdsdipURI)
+	public void connectToComputer(final String computerURI, final String csipURI, final String cssdipURI, final String cdsdipURI, final String ccripURI)
 			throws Exception {
 		final AdmissionController admissionController = (AdmissionController) this.owner;
 
@@ -41,7 +41,7 @@ AdmissionControllerManagementI
 
 			@Override
 			public Void call() throws Exception {
-				admissionController.connectToComputer(computerURI, csipURI, cssdipURI, cdsdipURI);
+				admissionController.connectToComputer(computerURI, csipURI, cssdipURI, cdsdipURI, ccripURI);
 				return null;
 			}
 

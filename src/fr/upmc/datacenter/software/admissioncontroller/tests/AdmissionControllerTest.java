@@ -68,12 +68,15 @@ public class AdmissionControllerTest extends AbstractCVM {
 		super.start();
 			
 		for (String computerURI : computerPark.getComputersURI()) {
+			
 			acmop.connectToComputer(
 					computerURI, 
 					computerPark.getComputerServicesInboundPortURIMap().get(computerURI), 
 					computerPark.getComputerStaticStateDataInboundPortURIMap().get(computerURI),
-					computerPark.getComputerDynamicStateDataInboundPortURIMap().get(computerURI)
+					computerPark.getComputerDynamicStateDataInboundPortURIMap().get(computerURI),
+					computerPark.getComputerCoreReleasingInboundPortURIMap().get(computerURI)
 					);
+			
 		}
 		
 		

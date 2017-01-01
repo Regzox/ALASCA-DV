@@ -20,9 +20,9 @@ public class AdmissionControllerManagementConnector
 {
 
 	@Override
-	public void connectToComputer(String computerURI, String csipURI, String cssdipURI, String cdsdipURI)
+	public void connectToComputer(String computerURI, String csipURI, String cssdipURI, String cdsdipURI, String ccripURI)
 			throws Exception {
-		((AdmissionControllerManagementI) this.offering).connectToComputer(computerURI, csipURI, cssdipURI, cdsdipURI);
+		((AdmissionControllerManagementI) this.offering).connectToComputer(computerURI, csipURI, cssdipURI, cdsdipURI,ccripURI);
 	}
 
 	@Override

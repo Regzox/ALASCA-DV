@@ -30,9 +30,9 @@ public class AdmissionControllerManagementOutboundPort
 	}
 
 	@Override
-	public void connectToComputer(String computerURI, String csipURI, String cssdipURI, String cdsdipURI)
+	public void connectToComputer(String computerURI, String csipURI, String cssdipURI, String cdsdipURI, String ccripURI)
 			throws Exception {
-		((AdmissionControllerManagementI) this.connector).connectToComputer(computerURI, csipURI, cssdipURI, cdsdipURI);
+		((AdmissionControllerManagementI) this.connector).connectToComputer(computerURI, csipURI, cssdipURI, cdsdipURI, ccripURI);
 	}
 
 	@Override

@@ -320,7 +320,8 @@ public class ComponentDataNode {
 			ComponentDataNode target = findByOwnedPort(otherPort);
 			
 			if (target == null)
-				throw new Exception("The other port doesn't seems have component. Are you sure that component is linked in children or parents ?");
+				throw new Exception("The other port doesn't seems have component. "
+						+ "Are you sure that component is linked in children or parents or adding ports ?");
 			
 			target.connections.put(otherPort, ownedPort);
 			connections.put(ownedPort, otherPort);

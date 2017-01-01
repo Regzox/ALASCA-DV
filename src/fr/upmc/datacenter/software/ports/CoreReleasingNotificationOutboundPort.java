@@ -2,6 +2,7 @@ package fr.upmc.datacenter.software.ports;
 
 import fr.upmc.components.ComponentI;
 import fr.upmc.components.ports.AbstractOutboundPort;
+import fr.upmc.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.upmc.datacenter.software.interfaces.CoreReleasingNotificationI;
 
 public class CoreReleasingNotificationOutboundPort 
@@ -20,8 +21,8 @@ public class CoreReleasingNotificationOutboundPort
 	}
 
 	@Override
-	public void notifyCoreReleasing(String avmURI) throws Exception {
-		((CoreReleasingNotificationI) this.connector).notifyCoreReleasing(avmURI);
+	public void notifyCoreReleasing(String avmURI, AllocatedCore allocatedCore) throws Exception {
+		((CoreReleasingNotificationI) this.connector).notifyCoreReleasing(avmURI, allocatedCore);
 	}
 
 }

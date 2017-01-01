@@ -48,7 +48,8 @@ public interface AdmissionControllerManagementI
 			final String computerURI, 
 			final String csipURI,
 			final String cssdipURI,
-			final String cdsdipURI) throws Exception;
+			final String cdsdipURI,
+			final String ccripURI) throws Exception;
 	
 	/**
 	 * Soumission d'une application simulée par une chaine {@link RequestGenerator}, {@link Dispatcher} et {@link ApplicationVM}

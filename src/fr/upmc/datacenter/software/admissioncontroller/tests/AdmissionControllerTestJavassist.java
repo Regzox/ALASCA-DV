@@ -97,7 +97,8 @@ public class AdmissionControllerTestJavassist extends AbstractCVM {
 					computerURI, 
 					computerPark.getComputerServicesInboundPortURIMap().get(computerURI), 
 					computerPark.getComputerStaticStateDataInboundPortURIMap().get(computerURI),
-					computerPark.getComputerDynamicStateDataInboundPortURIMap().get(computerURI)
+					computerPark.getComputerDynamicStateDataInboundPortURIMap().get(computerURI),
+					computerPark.getComputerCoreReleasingInboundPortURIMap().get(computerURI)
 					);
 		}
 		

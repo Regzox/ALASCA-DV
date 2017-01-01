@@ -2,6 +2,7 @@ package fr.upmc.datacenter.software.ports;
 
 import fr.upmc.components.ComponentI;
 import fr.upmc.components.ports.AbstractInboundPort;
+import fr.upmc.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.upmc.datacenter.software.interfaces.CoreReleasingNotificationHandlerI;
 import fr.upmc.datacenter.software.interfaces.CoreReleasingNotificationI;
 
@@ -23,14 +24,14 @@ public class CoreReleasingNotificationInboundPort
 	}
 
 	@Override
-	public void notifyCoreReleasing(String avmURI) throws Exception {
+	public void notifyCoreReleasing(String avmURI, AllocatedCore allocatedCore) throws Exception {
 		final CoreReleasingNotificationHandlerI crh =	(CoreReleasingNotificationHandlerI) this.owner ;
 		
 		this.owner.handleRequestAsync(
 				new ComponentI.ComponentService<Void>() {
 					@Override
 					public Void call() throws Exception {
-						crh.acceptCoreReleasing(avmURI);
+						crh.acceptCoreReleasing(avmURI, allocatedCore);
 						return null;
 					}
 				}) ;

@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Random;
 
 import fr.upmc.components.cvm.AbstractCVM;
-import fr.upmc.datacenter.hardware.computers.Computer;
+import fr.upmc.datacenter.hardware.computer.extended.Computer;
 import fr.upmc.datacenter.hardware.processor.model.Model;
 import fr.upmc.datacenter.hardware.processors.Processor;
 import fr.upmc.datacenter.software.enumerations.Tag;
@@ -28,6 +28,7 @@ public class Stock {
 	Map<String, String> computerServicesInboundPortURIMap;
 	Map<String, String> computerStaticStateDataInboundPortURIMap;
 	Map<String, String> computerDynamicStateDataInboundPortURIMap;
+	Map<String, String> computerCoreReleasingInboundPortURIMap;
 	
 	/**
 	 * Création d'un parc informatique nommé par une URI,
@@ -48,6 +49,7 @@ public class Stock {
 		computerServicesInboundPortURIMap = new HashMap<>();
 		computerStaticStateDataInboundPortURIMap = new HashMap<>();
 		computerDynamicStateDataInboundPortURIMap = new HashMap<>();
+		computerCoreReleasingInboundPortURIMap = new HashMap<>();
 		
 		this.uri = uri;
 		this.processorModel = model;
@@ -57,6 +59,7 @@ public class Stock {
 			String computerServicesInboundPortURI = generateURI(Tag.COMPUTER_SERVICES_INBOUND_PORT);
 			String computerStaticStateDataInboundPort = generateURI(Tag.COMPUTER_STATIC_STATE_DATA_INBOUND_PORT);
 			String computerDynamicStateDataInboundPort = generateURI(Tag.COMPUTER_DYNAMIC_STATE_DATA_INBOUND_PORT);
+			String computerCoreReleasingInboundPort = generateURI(Tag.COMPUTER_CORE_RELEASING_INBOUND_PORT);
 			
 			Computer computer = new Computer(
 					computerURI, 
@@ -68,7 +71,8 @@ public class Stock {
 					model.getProcessor().getNumberOfCores(), 
 					computerServicesInboundPortURI, 
 					computerStaticStateDataInboundPort, 
-					computerDynamicStateDataInboundPort);
+					computerDynamicStateDataInboundPort,
+					computerCoreReleasingInboundPort);
 			AbstractCVM.theCVM.addDeployedComponent(computer);
 			
 			computers.add(computer);
@@ -76,6 +80,7 @@ public class Stock {
 			computerServicesInboundPortURIMap.put(computerURI, computerServicesInboundPortURI);
 			computerStaticStateDataInboundPortURIMap.put(computerURI, computerStaticStateDataInboundPort);
 			computerDynamicStateDataInboundPortURIMap.put(computerURI, computerDynamicStateDataInboundPort);
+			computerCoreReleasingInboundPortURIMap.put(computerURI, computerCoreReleasingInboundPort);
 		}
 	}
 	
@@ -100,7 +105,8 @@ public class Stock {
 				model.getProcessor().getNumberOfCores(), 
 				Tag.COMPUTER_SERVICES_INBOUND_PORT.name() + rd.nextInt(), 
 				Tag.COMPUTER_STATIC_STATE_DATA_INBOUND_PORT.name() + rd.nextInt(), 
-				Tag.COMPUTER_DYNAMIC_STATE_DATA_INBOUND_PORT.name() + rd.nextInt());
+				Tag.COMPUTER_DYNAMIC_STATE_DATA_INBOUND_PORT.name() + rd.nextInt(),
+				Tag.COMPUTER_CORE_RELEASING_INBOUND_PORT.name() + rd.nextInt());
 		return computer;
 	}
 	
@@ -135,6 +141,10 @@ public class Stock {
 
 	public Map<String, String> getComputerDynamicStateDataInboundPortURIMap() {
 		return computerDynamicStateDataInboundPortURIMap;
+	}
+	
+	public Map<String, String> getComputerCoreReleasingInboundPortURIMap() {
+		return computerCoreReleasingInboundPortURIMap;
 	}
 	
 }

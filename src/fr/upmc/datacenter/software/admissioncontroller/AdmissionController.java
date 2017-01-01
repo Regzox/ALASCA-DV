@@ -12,6 +12,9 @@ import fr.upmc.components.connectors.DataConnector;
 import fr.upmc.components.cvm.AbstractCVM;
 import fr.upmc.components.interfaces.DataRequiredI.PullI;
 import fr.upmc.datacenter.connectors.ControlledDataConnector;
+import fr.upmc.datacenter.hardware.computer.extended.connectors.ComputerCoreReleasingConnector;
+import fr.upmc.datacenter.hardware.computer.extended.interfaces.ComputerCoreReleasingI;
+import fr.upmc.datacenter.hardware.computer.extended.ports.ComputerCoreReleasingOutboundPort;
 import fr.upmc.datacenter.hardware.computer.stock.Stock;
 import fr.upmc.datacenter.hardware.computers.Computer;
 import fr.upmc.datacenter.hardware.computers.Computer.AllocatedCore;
@@ -41,9 +44,9 @@ import fr.upmc.datacenter.software.admissioncontroller.interfaces.AdmissionContr
 import fr.upmc.datacenter.software.admissioncontroller.ports.AdmissionControllerManagementInboundPort;
 import fr.upmc.datacenter.software.applicationvm.connectors.ApplicationVMManagementConnector;
 import fr.upmc.datacenter.software.applicationvm.extended.ApplicationVM;
-import fr.upmc.datacenter.software.applicationvm.extended.connectors.CoreReleasingConnector;
-import fr.upmc.datacenter.software.applicationvm.extended.interfaces.CoreReleasingI;
-import fr.upmc.datacenter.software.applicationvm.extended.ports.CoreReleasingOutboundPort;
+import fr.upmc.datacenter.software.applicationvm.extended.connectors.ApplicationVMCoreReleasingConnector;
+import fr.upmc.datacenter.software.applicationvm.extended.interfaces.ApplicationVMCoreReleasingI;
+import fr.upmc.datacenter.software.applicationvm.extended.ports.ApplicationVMCoreReleasingOutboundPort;
 import fr.upmc.datacenter.software.applicationvm.ports.ApplicationVMManagementOutboundPort;
 import fr.upmc.datacenter.software.connectors.CoreReleasingNotifiactionConnector;
 import fr.upmc.datacenter.software.connectors.RequestNotificationConnector;
@@ -181,7 +184,7 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 	 */
 
 	@Override
-	public void connectToComputer(String computerURI, String csipURI, String cssdipURI, String cdsdipURI)
+	public void connectToComputer(String computerURI, String csipURI, String cssdipURI, String cdsdipURI, String ccripURI)
 			throws Exception {
 
 		/**
@@ -225,6 +228,18 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 
 		logMessage(cdsdopURI + " created and connected to " + cdsdipURI);
 		logMessage("");
+		
+		if (!requiredInterfaces.contains(ComputerCoreReleasingI.class))
+			addRequiredInterface(ComputerCoreReleasingI.class);
+
+		String ccropURI = generateURI(Tag.COMPUTER_CORE_RELEASING_OUTBOUND_PORT);
+		ComputerCoreReleasingOutboundPort ccrop = new ComputerCoreReleasingOutboundPort(ccropURI, ComputerCoreReleasingI.class, this);
+		addPort(ccrop);
+		ccrop.publishPort();		
+		ccrop.doConnection(ccripURI, ComputerCoreReleasingConnector.class.getCanonicalName());
+
+		logMessage(ccropURI + " created and connected to " + ccropURI);
+		logMessage("");
 
 		// computerServicesOutboundPortMap.put(computerURI, csopURI);
 		// computerStaticStateDataOutboundPortMap.put(computerURI, cssdopURI);
@@ -233,13 +248,18 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		// TODO AJOUT DES PORTS DANS LE NOEUD DU GRAPHE
 		ComponentDataNode computerDataNode = new ComponentDataNode(computerURI);
 
-		computerDataNode.addPort(csipURI).addPort(cssdipURI).addPort(cdsdipURI);
+		computerDataNode			.addPort(csipURI)
+									.addPort(cssdipURI)
+									.addPort(cdsdipURI)
+									.addPort(ccripURI);
 
-		admissionControllerDataNode.addChild(computerDataNode).trustedConnect(csopURI, csipURI)
-				.trustedConnect(cssdopURI, cssdipURI).trustedConnect(cdsdopURI, cdsdipURI);
+		admissionControllerDataNode	.addChild(computerDataNode)
+									.trustedConnect(csopURI, csipURI)
+									.trustedConnect(cssdopURI, cssdipURI)
+									.trustedConnect(cdsdopURI, cdsdipURI)
+									.trustedConnect(ccropURI, ccripURI);
 
-		 computersStaticStates.put(computerURI, (ComputerStaticStateI)
-		 cssdop.request());
+		 computersStaticStates.put(computerURI, (ComputerStaticStateI) cssdop.request());
 
 		/**
 		 * Création d'un port de management, d'introspection sur chaque
@@ -367,6 +387,20 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		avm = (ApplicationVM) components.get(1);
 		dsp = (Dispatcher) components.get(2);
 
+		/**
+		 * L'AVM est fille de l'ordinateur. Comme une AVM ne peut tourner que sur un unique ordinateur, on peut se permettre
+		 * de lier l'AVM à son ordinateur. Celà nous permettra par la suite de retrouver l'ordinateur sur lequel tourne l'AVM
+		 * en se sachant que l'URI de l'AVM.
+		 */
+		
+		ComponentDataNode cptdn = admissionControllerDataNode.findByURI(computerURI);
+		ComponentDataNode avmdn = admissionControllerDataNode.findByURI(applicationVMURI);
+		
+		System.out.println(cptdn);
+		System.out.println(avmdn);
+		
+		cptdn.addChild(avmdn);
+		
 		String rgmop = connect(rgn, requestGeneratorManagementInboundPortURI,
 				requestGeneratorRequestNotificationInboundPortURI, requestGeneratorRequestSubmissionOutboundPortURI,
 				avm, applicationVMManagementInboundPortURI, applicationVMRequestSubmissionInboundPortURI,
@@ -1459,9 +1493,9 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		String cripURI = avmdn.getPortLike(Tag.APPLICATION_VM_CORE_RELEASING_INBOUND_PORT.toString());
 		String cropURI = avmdn.getPortConnectedTo(cripURI);
 
-		CoreReleasingOutboundPort crop = (CoreReleasingOutboundPort) this.findPortFromURI(cropURI);
-		crop.releaseCores(cores);
-
+		ApplicationVMCoreReleasingOutboundPort avmcrop = (ApplicationVMCoreReleasingOutboundPort) this.findPortFromURI(cropURI);
+		avmcrop.releaseCores(cores);
+		
 		logMessage("From " + computerURI + ", " + cores + " cores are been ask to be released from " + avmURI);
 
 	}
@@ -1477,7 +1511,7 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 	// }
 
 	@Override
-	public void acceptCoreReleasing(String avmURI) {
+	public void acceptCoreReleasing(String avmURI, AllocatedCore allocatedCore) throws Exception {
 
 		/**
 		 * TODO Ajouter la méthode pour libérer le coeur du côté ordinateur. Il
@@ -1485,6 +1519,27 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		 * sa position dans l'ordinateur physique (proc, core)
 		 */
 
+		ComponentDataNode avmcdn = admissionControllerDataNode.findByURI(avmURI);
+		ComponentDataNode cptcdn = null;
+		for (ComponentDataNode node : avmcdn.parents) {
+			if (node.uri.contains(Tag.COMPUTER.toString())) {
+				cptcdn = node;
+				break;
+			}
+		}
+		
+		if (cptcdn == null)
+			throw new Exception("The AVM " + avmURI + " doesn't have a computer parent ! ");
+		
+		ComponentDataNode cpt = admissionControllerDataNode.findByURI(cptcdn.uri);
+		String ccripURI = cpt.getPortLike(Tag.COMPUTER_CORE_RELEASING_INBOUND_PORT);
+		String ccropURI = cpt.getPortConnectedTo(ccripURI);
+		
+		ComputerCoreReleasingOutboundPort ccrop = (ComputerCoreReleasingOutboundPort) this.findPortFromURI(ccropURI);
+		ccrop.releaseCore(allocatedCore);
+		
+		System.out.println("\tComputerAvailableCores[" + cptcdn.uri + "] : " + computerAvailableCores(cptcdn.uri));
+		
 		logMessage("CORE RELEASING SUCCESSFUL FOR " + avmURI);
 
 	}
@@ -1810,8 +1865,8 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		 * Création du port de management pour la gestion de l'AVM
 		 */
 
-		if (!requiredInterfaces.contains(CoreReleasingI.class))
-			addRequiredInterface(CoreReleasingI.class);
+		if (!requiredInterfaces.contains(ApplicationVMCoreReleasingI.class))
+			addRequiredInterface(ApplicationVMCoreReleasingI.class);
 
 		final String avmmopURI = generateURI(Tag.APPLICATION_VM_MANAGEMENT_OUTBOUND_PORT);
 		ApplicationVMManagementOutboundPort avmmop = new ApplicationVMManagementOutboundPort(avmmopURI, this);
@@ -1829,11 +1884,11 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		 * l'AVM
 		 */
 
-		if (!requiredInterfaces.contains(CoreReleasingI.class))
-			requiredInterfaces.add(CoreReleasingI.class);
+		if (!requiredInterfaces.contains(ApplicationVMCoreReleasingI.class))
+			requiredInterfaces.add(ApplicationVMCoreReleasingI.class);
 
 		final String cropURI = generateURI(Tag.APPLICATION_VM_CORE_RELEASING_OUTBOUND_PORT);
-		CoreReleasingOutboundPort crop = new CoreReleasingOutboundPort(cropURI, CoreReleasingI.class, this);
+		ApplicationVMCoreReleasingOutboundPort crop = new ApplicationVMCoreReleasingOutboundPort(cropURI, ApplicationVMCoreReleasingI.class, this);
 		addPort(crop);
 		crop.publishPort();
 
@@ -1878,7 +1933,7 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		 * Connexion du contrôleur d'admission à l'AVM pour le demandes de
 		 * libération de coeurs
 		 */
-		crop.doConnection(applicationVMCoreReleasingInboundPortURI, CoreReleasingConnector.class.getCanonicalName());
+		crop.doConnection(applicationVMCoreReleasingInboundPortURI, ApplicationVMCoreReleasingConnector.class.getCanonicalName());
 
 		logMessage(crop.getClientPortURI() + " connected to " + crop.getServerPortURI());
 

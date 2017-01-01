@@ -101,6 +101,7 @@ public class AdmissionControllerCVM extends AbstractDistributedCVM {
 			String computerServicesInboundPortURI = stockURI + '_' + Tag.COMPUTER_SERVICES_INBOUND_PORT + '_' + i;
 			String computerStaticStateDataInboundPortURI = stockURI + '_' + Tag.COMPUTER_STATIC_STATE_DATA_INBOUND_PORT + '_' + i;
 			String computerDynamicStateDataInboundPortURI = stockURI + '_' + Tag.COMPUTER_DYNAMIC_STATE_DATA_INBOUND_PORT + '_' + i;
+			String computerCoreReleasingInboundPortURI = stockURI + '_' + Tag.COMPUTER_CORE_RELEASING_INBOUND_PORT + '_' + i;
 			
 			System.out.println(computerURI);
 			System.out.println(computerServicesInboundPortURI);
@@ -111,7 +112,8 @@ public class AdmissionControllerCVM extends AbstractDistributedCVM {
 					computerURI, 
 					computerServicesInboundPortURI, 
 					computerStaticStateDataInboundPortURI, 
-					computerDynamicStateDataInboundPortURI);
+					computerDynamicStateDataInboundPortURI,
+					computerCoreReleasingInboundPortURI);
 		}
 	}
 	
