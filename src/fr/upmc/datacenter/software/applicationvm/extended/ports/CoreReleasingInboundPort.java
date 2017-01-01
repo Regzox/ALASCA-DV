@@ -2,21 +2,25 @@ package fr.upmc.datacenter.software.applicationvm.extended.ports;
 
 import fr.upmc.components.ComponentI;
 import fr.upmc.components.ComponentI.ComponentService;
+import fr.upmc.components.ports.AbstractInboundPort;
 import fr.upmc.datacenter.software.applicationvm.extended.ApplicationVM;
-import fr.upmc.datacenter.software.applicationvm.extended.interfaces.ApplicationVMManagementI;
+import fr.upmc.datacenter.software.applicationvm.extended.interfaces.CoreReleasingI;
 
-public class ApplicationVMManagementInboundPort 
-	extends fr.upmc.datacenter.software.applicationvm.ports.ApplicationVMManagementInboundPort
-	implements ApplicationVMManagementI
+public class CoreReleasingInboundPort 
+	extends
+		AbstractInboundPort
+	implements 
+		CoreReleasingI 
 {
+	
 	private static final long serialVersionUID = -8110360172314379818L;
 
-	public ApplicationVMManagementInboundPort(ComponentI owner) throws Exception {
-		super(owner);
+	public CoreReleasingInboundPort(Class<?> implementedInterface, ComponentI owner) throws Exception {
+		super(implementedInterface, owner);
 	}
 
-	public ApplicationVMManagementInboundPort(String uri, ComponentI owner) throws Exception {
-		super(uri, owner);
+	public CoreReleasingInboundPort(String uri, Class<?> implementedInterface, ComponentI owner) throws Exception {
+		super(uri, implementedInterface, owner);
 	}
 
 	@Override

@@ -13,6 +13,7 @@ public class DispatcherDynamicState
 	
 	private static final long serialVersionUID = 4949083977082476764L;
 	
+	protected String dispatcherURI;
 	protected long timestamp;
 	protected String timestamperIP;
 	protected Map<String, ExponentialAverageI> exponentialAverages;
@@ -20,6 +21,7 @@ public class DispatcherDynamicState
 	protected Map<String, Integer> performedRequests;
 	
 	public DispatcherDynamicState(
+			String dispatcherURI,
 			Map<String, ExponentialAverageI> exponentialAverages,
 			Map<String, Integer> pendingsRequests,
 			Map<String, Integer> performedRequests) 

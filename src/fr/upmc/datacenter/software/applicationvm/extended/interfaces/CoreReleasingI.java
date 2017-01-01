@@ -1,8 +1,7 @@
 package fr.upmc.datacenter.software.applicationvm.extended.interfaces;
 
-public interface ApplicationVMManagementI 
-	extends fr.upmc.datacenter.software.applicationvm.interfaces.ApplicationVMManagementI 
-{
+public interface CoreReleasingI {
+	
 	/**
 	 * Permet de libérer un coeur. La libération d'un coeur doit être faite de manière atomique.
 	 */
@@ -17,9 +16,11 @@ public interface ApplicationVMManagementI
 	void releaseCores(int cores) throws Exception;
 	
 	/**
-	 * Permet de libérer tous les coeurs sauf 1
+	 * Permet de libérer le maximum de coeur en fonction du composant qui implante l'interface.
+	 * 
 	 * @throws Exception
 	 */
 	
 	void releaseMaximumCores() throws Exception;
+	
 }

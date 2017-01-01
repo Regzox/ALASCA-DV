@@ -52,7 +52,9 @@ public class Dispatcher extends AbstractComponent
 	protected Map<String, ExponentialAverage> exponentialAverages = new HashMap<>();
 	protected Map<String, ChronometerI> requestChronometers = new HashMap<>();
 	
-	protected String uri;					
+	protected String uri;		
+	
+	protected String rsipURI, rsopURI, rnipURI, rnopURI;
 	
 	protected DispatcherManagementInboundPort dmip;
 	
@@ -109,7 +111,7 @@ public class Dispatcher extends AbstractComponent
 		if (!requiredInterfaces.contains(RequestNotificationI.class))
 			addRequiredInterface(RequestNotificationI.class);
 		
-		String rnopURI = generateURI(Tag.REQUEST_NOTIFICATION_OUTBOUND_PORT);
+		rnopURI = generateURI(Tag.REQUEST_NOTIFICATION_OUTBOUND_PORT);
 		RequestNotificationOutboundPort rnop = new RequestNotificationOutboundPort(rnopURI, this);
 		addPort(rnop);
 		rnop.publishPort();
@@ -118,7 +120,7 @@ public class Dispatcher extends AbstractComponent
 		if (!offeredInterfaces.contains(RequestSubmissionI.class))
 			addOfferedInterface(RequestSubmissionI.class);
 		
-		String rsipURI = generateURI(Tag.REQUEST_SUBMISSION_INBOUND_PORT);
+		rsipURI = generateURI(Tag.REQUEST_SUBMISSION_INBOUND_PORT);
 		RequestSubmissionInboundPort rsip = new RequestSubmissionInboundPort(rsipURI, this);
 		addPort(rsip);
 		rsip.publishPort();
@@ -158,13 +160,13 @@ public class Dispatcher extends AbstractComponent
 		if (!requiredInterfaces.contains(RequestSubmissionI.class))
 			addRequiredInterface(RequestSubmissionI.class);
 		
-		String rsopURI = generateURI(Tag.REQUEST_SUBMISSION_OUTBOUND_PORT);
+		rsopURI = generateURI(Tag.REQUEST_SUBMISSION_OUTBOUND_PORT);
 		RequestSubmissionOutboundPort rsop = new RequestSubmissionOutboundPort(rsopURI, this);
 		addPort(rsop);
 		rsop.publishPort();
 		rsop.doConnection(rsipURI, RequestSubmissionConnector.class.getCanonicalName());
 		
-		String rnipURI = generateURI(Tag.REQUEST_NOTIFICATION_INBOUND_PORT);
+		rnipURI = generateURI(Tag.REQUEST_NOTIFICATION_INBOUND_PORT);
 		RequestNotificationInboundPort rnip = new RequestNotificationInboundPort(rnipURI, this);
 		addPort(rnip);
 		rnip.publishPort();
@@ -359,4 +361,29 @@ public class Dispatcher extends AbstractComponent
 		return sb.toString();
 	}
 
+	@Override
+	public String getURI() {
+		return uri;
+	}
+
+	@Override
+	public String getRequestSubmissionInboundPortURI() {
+		return rsipURI;
+	}
+
+	@Override
+	public String getRequestSubmissionOutboundPortURI() {
+		return rsopURI;
+	}
+
+	@Override
+	public String getRequestNotificationInboundPortURI() {
+		return rnipURI;
+	}
+
+	@Override
+	public String getRequestNotificationOutboundPortURI() {
+		return rnopURI;
+	}
+	
 }

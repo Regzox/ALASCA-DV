@@ -1,25 +1,33 @@
 package fr.upmc.datacenter.software.applicationvm.extended.connectors;
 
-import fr.upmc.datacenter.software.applicationvm.extended.interfaces.ApplicationVMManagementI;
+import fr.upmc.components.connectors.AbstractConnector;
+import fr.upmc.datacenter.software.applicationvm.extended.interfaces.CoreReleasingI;
 
-public class ApplicationVMManagementConnector 
-	extends fr.upmc.datacenter.software.applicationvm.connectors.ApplicationVMManagementConnector
-	implements ApplicationVMManagementI
+public class CoreReleasingConnector 
+	extends 
+		AbstractConnector
+	implements 
+		CoreReleasingI
 {
+
+	public CoreReleasingConnector() {
+		super();
+		// TODO Auto-generated constructor stub
+	}
 
 	@Override
 	public void releaseCore() throws Exception {
-		((ApplicationVMManagementI) this.offering).releaseCore();
+		((CoreReleasingI) this.offering).releaseCore();
 	}
 
 	@Override
 	public void releaseCores(int cores) throws Exception {
-		((ApplicationVMManagementI) this.offering).releaseCore();
+		((CoreReleasingI) this.offering).releaseCores(cores);
 	}
 
 	@Override
 	public void releaseMaximumCores() throws Exception {
-		((ApplicationVMManagementI) this.offering).releaseMaximumCores();
+		((CoreReleasingI) this.offering).releaseMaximumCores();
 	}
 	
 }

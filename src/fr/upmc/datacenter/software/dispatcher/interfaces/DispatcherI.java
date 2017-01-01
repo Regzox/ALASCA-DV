@@ -69,4 +69,10 @@ public interface DispatcherI {
 	 */
 
 	String dynamicStateToString();
+	
+	String getURI();
+	String getRequestSubmissionInboundPortURI();
+	String getRequestSubmissionOutboundPortURI();
+	String getRequestNotificationInboundPortURI();
+	String getRequestNotificationOutboundPortURI();
 }
