@@ -372,8 +372,7 @@ public class ComponentDataNode {
 		hugeChain();
 	}
 	
-	@SuppressWarnings("unused")
-	private static void chain() {
+	public static void chain() {
 		ComponentDataNode A = new ComponentDataNode("A");
 		ComponentDataNode B = new ComponentDataNode("B");
 		ComponentDataNode C = new ComponentDataNode("C");
@@ -387,8 +386,7 @@ public class ComponentDataNode {
 		E.addChild(C);
 	}
 	
-	@SuppressWarnings("unused")
-	private static void hugeChain() {
+	public static void hugeChain() {
 		Random rd = new Random();
 		List<ComponentDataNode> nodes = new ArrayList<>();
 		Chronometer chrono = new Chronometer();
@@ -407,8 +405,7 @@ public class ComponentDataNode {
 		System.out.println("TEMPS DE CUEILLETTE : " + chrono.stop().getMilliseconds() + " ms");
 	}
 	
-	@SuppressWarnings("unused")
-	private static void connecting() {
+	public static void connecting() {
 		ComponentDataNode A = new ComponentDataNode("A");
 		ComponentDataNode B = new ComponentDataNode("B");
 		
