@@ -61,6 +61,20 @@ public class Stock {
 			String computerDynamicStateDataInboundPort = generateURI(Tag.COMPUTER_DYNAMIC_STATE_DATA_INBOUND_PORT);
 			String computerCoreReleasingInboundPort = generateURI(Tag.COMPUTER_CORE_RELEASING_INBOUND_PORT);
 			
+			System.out.println(
+					computerURI + '\n' +
+					model.getAdmissibleFrequencies() + '\n' + 
+					model.getProcessingPower() + '\n' +
+					model.getProcessor().getDefaultFrequency() + '\n' + 
+					model.getProcessor().getMaxFrequencyGap() + '\n' +
+					processorUnits + '\n' +
+					model.getProcessor().getNumberOfCores() + '\n' + 
+					computerServicesInboundPortURI + '\n' +
+					computerStaticStateDataInboundPort + '\n' + 
+					computerDynamicStateDataInboundPort + '\n' +
+					computerCoreReleasingInboundPort
+			);
+			
 			Computer computer = new Computer(
 					computerURI, 
 					model.getAdmissibleFrequencies(), 

@@ -139,7 +139,7 @@ public class DispatcherTest
 							admissibleFrequencies,
 							processingPower,  
 							1500,		// Test scenario 1, frequency = 1,5 GHz
-							// 3000,	// Test scenario 2, frequency = 3 GHz
+//							3000,	// Test scenario 2, frequency = 3 GHz
 							1500,		// max frequency gap within a processor
 							numberOfProcessors,
 							numberOfCores,

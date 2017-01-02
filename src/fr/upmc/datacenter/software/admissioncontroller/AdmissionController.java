@@ -84,52 +84,23 @@ import fr.upmc.nodes.ComponentDataNode;
  *
  */
 
-public class AdmissionController extends AbstractComponent implements AdmissionControllerI,
-		AdmissionControllerManagementI, ComputerStateDataConsumerI, CoreReleasingNotificationHandlerI {
+public class AdmissionController 
+	extends 
+		AbstractComponent 
+	implements 
+		AdmissionControllerI,
+		AdmissionControllerManagementI, 
+		ComputerStateDataConsumerI, 
+		CoreReleasingNotificationHandlerI 
+{
 	public static boolean LOGGING_ALL = false;
 	public static boolean LOGGING_REQUEST_GENERATOR = false;
 	public static boolean LOGGING_APPLICATION_VM = false;
 	public static boolean LOGGING_DISPATCHER = false;
 
 	protected String uri;
-
-	/**
-	 * Maps des URIs des port appartenant aux différents ordinateurs connectés
-	 * au contrôleur d'admission
-	 */
-
-	// protected Map<String, String> computerServicesOutboundPortMap;
-	// protected Map<String, String> computerStaticStateDataOutboundPortMap;
-	// protected Map<String, String> computerDynamicStateDataOutboundPortMap;
-
-	/**
-	 * Maps des états statiques et dynamiques des ordinateurs
-	 */
-
 	protected Map<String, ComputerStaticStateI> computersStaticStates;
 	protected Map<String, ComputerDynamicStateI> computersDynamicStates;
-
-	/**
-	 * Maps des ports de chaques processeurs appartenant aux ordinateurs
-	 */
-
-	// protected Map<String, Map<String, ProcessorManagementOutboundPort>>
-	// computerProcessorsManagementOutboundPortsMap;
-	// protected Map<String, Map<String, ProcessorIntrospectionOutboundPort>>
-	// computerProcessorsIntrospectionOutboundPortsMap;
-
-	// TODO
-
-	// protected Map<String, RequestGeneratorManagementOutboundPort>
-	// dispatcherRequestGeneratorManagementOutboundPortsMap;
-	// protected Map<String, Map<String, ApplicationVMManagementOutboundPort>>
-	// dispatcherApplicationVMManagementOutboundPortsMap;
-	// protected Map<String, DispatcherManagementOutboundPort>
-	// dispatcherManagementOutboundPortsMap;
-	//
-	// protected Map<String, Map<String, ApplicationVMManagementOutboundPort>>
-	// applicationVMManagementOutboundPortsMap;
-
 	protected ComponentDataNode admissionControllerDataNode;
 
 	/**
@@ -144,39 +115,21 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 
 	public AdmissionController(String uri, String AdmissionControllerManagementInboundPortURI) throws Exception {
 		super(1, 1);
-
+		
 		this.uri = uri;
+		computersStaticStates = new HashMap<>();
+		computersDynamicStates = new HashMap<>();
 
-		/**
-		 * Création du port d'entrée de management du contrôleur d'admission
-		 */
-
+		admissionControllerDataNode = new ComponentDataNode(uri);
 		if (!offeredInterfaces.contains(AdmissionControllerManagementI.class))
 			addOfferedInterface(AdmissionControllerManagementI.class);
 
 		AdmissionControllerManagementInboundPort acmip = new AdmissionControllerManagementInboundPort(
-				AdmissionControllerManagementInboundPortURI, AdmissionControllerManagementI.class, this);
+				AdmissionControllerManagementInboundPortURI, 
+				AdmissionControllerManagementI.class, 
+				this);
 		addPort(acmip);
 		acmip.publishPort();
-
-		// computerServicesOutboundPortMap = new HashMap<>();
-		// computerStaticStateDataOutboundPortMap = new HashMap<>();
-		// computerDynamicStateDataOutboundPortMap = new HashMap<>();
-		//
-		computersStaticStates = new HashMap<>();
-		computersDynamicStates = new HashMap<>();
-		//
-		// computerProcessorsManagementOutboundPortsMap = new HashMap<>();
-		// computerProcessorsIntrospectionOutboundPortsMap = new HashMap<>();
-		//
-		// dispatcherRequestGeneratorManagementOutboundPortsMap = new
-		// HashMap<>();
-		// dispatcherApplicationVMManagementOutboundPortsMap = new HashMap<>();
-		// dispatcherManagementOutboundPortsMap = new HashMap<>();
-		//
-		// applicationVMManagementOutboundPortsMap = new HashMap<>();
-
-		admissionControllerDataNode = new ComponentDataNode(uri);
 	}
 
 	/**
@@ -228,7 +181,7 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 
 		logMessage(cdsdopURI + " created and connected to " + cdsdipURI);
 		logMessage("");
-		
+
 		if (!requiredInterfaces.contains(ComputerCoreReleasingI.class))
 			addRequiredInterface(ComputerCoreReleasingI.class);
 
@@ -240,10 +193,6 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 
 		logMessage(ccropURI + " created and connected to " + ccropURI);
 		logMessage("");
-
-		// computerServicesOutboundPortMap.put(computerURI, csopURI);
-		// computerStaticStateDataOutboundPortMap.put(computerURI, cssdopURI);
-		// computerDynamicStateDataOutboundPortMap.put(computerURI, cdsdopURI);
 
 		// TODO AJOUT DES PORTS DANS LE NOEUD DU GRAPHE
 		ComponentDataNode computerDataNode = new ComponentDataNode(computerURI);
@@ -259,7 +208,7 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 									.trustedConnect(cdsdopURI, cdsdipURI)
 									.trustedConnect(ccropURI, ccripURI);
 
-		 computersStaticStates.put(computerURI, (ComputerStaticStateI) cssdop.request());
+		computersStaticStates.put(computerURI, (ComputerStaticStateI) cssdop.request());
 
 		/**
 		 * Création d'un port de management, d'introspection sur chaque
@@ -272,10 +221,16 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		Map<String, ProcessorIntrospectionOutboundPort> piops = new HashMap<String, ProcessorIntrospectionOutboundPort>();
 
 		for (String processorURI : computersStaticStates.get(computerURI).getProcessorURIs().values()) {
-			String processorManagementInboundPortURI = computersStaticStates.get(computerURI).getProcessorPortMap()
-					.get(processorURI).get(ProcessorPortTypes.MANAGEMENT);
-			String processorIntrospectionInboundPortURI = computersStaticStates.get(computerURI).getProcessorPortMap()
-					.get(processorURI).get(ProcessorPortTypes.INTROSPECTION);
+			String processorManagementInboundPortURI = computersStaticStates
+					.get(computerURI)
+					.getProcessorPortMap()
+					.get(processorURI)
+					.get(ProcessorPortTypes.MANAGEMENT);
+			String processorIntrospectionInboundPortURI = computersStaticStates
+					.get(computerURI)
+					.getProcessorPortMap()
+					.get(processorURI)
+					.get(ProcessorPortTypes.INTROSPECTION);
 
 			if (!requiredInterfaces.contains(ProcessorManagementI.class))
 				addRequiredInterface(ProcessorManagementI.class);
@@ -303,19 +258,18 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 			// TODO AJOUT DES PROCESSEURS ET DES PORTS CONNUS ASSOCIES
 			ComponentDataNode processorDataNode = new ComponentDataNode(processorURI);
 
-			computerDataNode.addChild(processorDataNode);
+			computerDataNode
+				.addChild(processorDataNode);
 
-			processorDataNode.addPort(processorIntrospectionInboundPortURI).addPort(processorManagementInboundPortURI);
+			processorDataNode	
+				.addPort(processorIntrospectionInboundPortURI)
+				.addPort(processorManagementInboundPortURI);
 
-			admissionControllerDataNode.trustedConnect(pmopURI, processorManagementInboundPortURI)
-					.trustedConnect(piopURI, processorIntrospectionInboundPortURI);
+			admissionControllerDataNode	
+				.trustedConnect(pmopURI, processorManagementInboundPortURI)
+				.trustedConnect(piopURI, processorIntrospectionInboundPortURI);
 		}
 
-		// System.out.println(admissionControllerDataNode.graphToString());
-
-		// computerProcessorsManagementOutboundPortsMap.put(computerURI, pmops);
-		// computerProcessorsIntrospectionOutboundPortsMap.put(computerURI,
-		// piops);
 	}
 
 	@Override
@@ -392,15 +346,12 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		 * de lier l'AVM à son ordinateur. Celà nous permettra par la suite de retrouver l'ordinateur sur lequel tourne l'AVM
 		 * en se sachant que l'URI de l'AVM.
 		 */
-		
+
 		ComponentDataNode cptdn = admissionControllerDataNode.findByURI(computerURI);
 		ComponentDataNode avmdn = admissionControllerDataNode.findByURI(applicationVMURI);
-		
-		System.out.println(cptdn);
-		System.out.println(avmdn);
-		
+
 		cptdn.addChild(avmdn);
-		
+
 		String rgmop = connect(rgn, requestGeneratorManagementInboundPortURI,
 				requestGeneratorRequestNotificationInboundPortURI, requestGeneratorRequestSubmissionOutboundPortURI,
 				avm, applicationVMManagementInboundPortURI, applicationVMRequestSubmissionInboundPortURI,
@@ -431,19 +382,13 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 
 		launch(rgn, avm, dsp);
 
-		/** TODO **/
+		/** TODO TESTS **/
 
-		// applicationVMManagementOutboundPortsMap.put(applicationVMURI,
-		// dispatcherApplicationVMManagementOutboundPortsMap.get(dispatcherURI));
+		System.out.println("\tComputerAvailableCores[" + computerURI + "] : " + computerAvailableCores(computerURI));
 		
+		allocateCores(computerURI, applicationVMURI, 15);
+	
 		System.out.println("\tComputerAvailableCores[" + computerURI + "] : " + computerAvailableCores(computerURI));
-//		
-		allocateCores(computerURI, applicationVMURI, 3);
-		releaseCores(computerURI, applicationVMURI, 2);
-//		
-		System.out.println("\tComputerAvailableCores[" + computerURI + "] : " + computerAvailableCores(computerURI));
-//		System.out.println("\tComputerAvailableCores[" + computerURI + "] : " + computerAvailableCores(uri));
-		//releaseCores(computerURI, applicationVMURI, 3);
 
 		return rgmop;
 	}
@@ -473,8 +418,6 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		String computerURI = null;
 		int numberOfCores = 0;
 
-		// for (String cdsdopURI :
-		// computerDynamicStateDataOutboundPortMap.values()) {
 		for (String port : admissionControllerDataNode.ports) {
 			String cdsdopURI = null;
 			if (port.contains(Tag.COMPUTER_DYNAMIC_STATE_DATA_OUTBOUND_PORT.toString()))
@@ -571,13 +514,11 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		 * Tentative d'allocation du nombre de coeurs voulu pour l'applicationVM
 		 */
 
-		// ComputerServicesOutboundPort csop = (ComputerServicesOutboundPort)
-		// findPortFromURI(computerServicesOutboundPortMap.get(computerURI));
 		ComponentDataNode computerDataNode = admissionControllerDataNode.findByURI(computerURI);
 		String csipURI = computerDataNode.getPortLike(Tag.COMPUTER_SERVICES_INBOUND_PORT);
 		String csopURI = computerDataNode.getPortConnectedTo(csipURI);
 		ComputerServicesOutboundPort csop = (ComputerServicesOutboundPort) findPortFromURI(csopURI);
-		
+
 		AllocatedCore[] cores = csop.allocateCores(numberOfCores);
 
 		if (cores.length == numberOfCores)
@@ -594,7 +535,6 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 
 		if (cores.length == 0) {
 			logMessage("GRAVE : no core busyless found on the selected computer " + computerURI);
-			// AbstractCVM.theCVM.removeDeployedComponent(requestGenerator);
 			AbstractCVM.theCVM.removeDeployedComponent(applicationVM);
 			AbstractCVM.theCVM.removeDeployedComponent(dispatcher);
 			logMessage("Submission aborted due to incoherent an computer status on " + computerURI);
@@ -620,9 +560,6 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		/**
 		 * Connexion de l'application au dispatcher
 		 */
-
-//		System.out.println(application.findPortURIsFromInterface(RequestSubmissionI.class)[0]);
-//		System.out.println(application.findPortURIsFromInterface(RequestNotificationI.class)[0]);
 
 		String rsipURI = dmop
 				.connectToRequestGenerator(application.findPortURIsFromInterface(RequestNotificationI.class)[0]);
@@ -663,8 +600,6 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 			String computerURI = null;
 			int numberOfCores = 0;
 
-			// for (String cdsdopURI :
-			// computerDynamicStateDataOutboundPortMap.values()) {
 			for (String port : admissionControllerDataNode.ports) {
 				String cdsdopURI = null;
 				if (port.contains(Tag.COMPUTER_DYNAMIC_STATE_DATA_OUTBOUND_PORT.toString()))
@@ -746,14 +681,11 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 			 * l'applicationVM
 			 */
 
-			// ComputerServicesOutboundPort csop =
-			// (ComputerServicesOutboundPort)
-			// findPortFromURI(computerServicesOutboundPortMap.get(computerURI));
 			ComponentDataNode computerDataNode = admissionControllerDataNode.findByURI(computerURI);
 			String csipURI = computerDataNode.getPortLike(Tag.COMPUTER_SERVICES_INBOUND_PORT);
 			String csopURI = computerDataNode.getPortConnectedTo(csipURI);
 			ComputerServicesOutboundPort csop = (ComputerServicesOutboundPort) findPortFromURI(csopURI);
-			
+
 			AllocatedCore[] cores = csop.allocateCores(numberOfCores);
 
 			if (cores.length == numberOfCores)
@@ -809,8 +741,6 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 
 		stopDynamicStateDataPushing();
 
-		// for (String cdsdopURI :
-		// computerDynamicStateDataOutboundPortMap.values()) {
 		for (String port : admissionControllerDataNode.ports) {
 			String cdsdopURI = null;
 			if (port.contains(Tag.COMPUTER_DYNAMIC_STATE_DATA_OUTBOUND_PORT.toString()))
@@ -829,8 +759,6 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 	@Override
 	public void stopDynamicStateDataPushing() throws Exception {
 
-		// for (String cdsdopURI :
-		// computerDynamicStateDataOutboundPortMap.values()) {
 		for (String port : admissionControllerDataNode.ports) {
 			String cdsdopURI = null;
 			if (port.contains(Tag.COMPUTER_DYNAMIC_STATE_DATA_OUTBOUND_PORT.toString()))
@@ -865,7 +793,6 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		assert processorURI != null;
 		assert coreNo >= 0;
 
-		// void result = void.STAGNATED;
 		ComputerStaticStateI computerStaticState = computersStaticStates.get(computerURI);
 		ProcessorManagementOutboundPort pmop = (ProcessorManagementOutboundPort) this
 				.findPortFromURI("pmop-" + processorURI);
@@ -917,7 +844,7 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		 */
 
 		index = admissibleFrequencies.indexOf(frequency);
-
+		
 		if (index == -1)
 			throw new Exception("La fréquence n'a pas été trouvée parmis les fréquences admissibles");
 
@@ -925,7 +852,7 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 
 		if (index >= admissibleFrequencies.size()) {
 			logMessage("Already maxed");
-			return; // result;
+			return;
 		}
 
 		/**
@@ -971,15 +898,6 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 						+ admissibleFrequencies.get(index));
 
 				pmop.setCoreFrequency(i, admissibleFrequencies.get(index));
-
-				// /**
-				// * Le coeur que nous voulons augmenter n'est pas à son
-				// maximum, donc le resultat de l'appel n'est pas une stagnation
-				// mais une augmentation
-				// */
-				//
-				// if (i == coreNo)
-				// result = void.INCREASED;
 			}
 
 			logMessage("On computer " + computerURI + ", on processor " + processorURI + ", the core " + coreNo
@@ -996,13 +914,9 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 
 			logMessage("On computer " + computerURI + ", on processor " + processorURI + ", the core " + coreNo
 					+ ", the frequency up to " + admissibleFrequencies.get(index));
-
+			
 			pmop.setCoreFrequency(coreNo, admissibleFrequencies.get(index));
-			// result = void.INCREASED;
-
 		}
-
-		// return result;
 	}
 
 	@Override
@@ -1071,7 +985,7 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 
 		if (index < 0) {
 			logMessage("Already minified");
-			return; // result;
+			return;
 		}
 
 		/**
@@ -1117,15 +1031,6 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 						+ admissibleFrequencies.get(index));
 
 				pmop.setCoreFrequency(i, admissibleFrequencies.get(index));
-
-				// /**
-				// * Le coeur que nous voulons augmenter n'est pas à son
-				// maximum, donc le resultat de l'appel n'est pas une stagnation
-				// mais une augmentation
-				// */
-				//
-				// if (i == coreNo)
-				// result = void.INCREASED;
 			}
 
 			logMessage("On computer " + computerURI + ", on processor " + processorURI + ", the core " + coreNo
@@ -1144,189 +1049,19 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 					+ ", the frequency down to " + admissibleFrequencies.get(index));
 
 			pmop.setCoreFrequency(coreNo, admissibleFrequencies.get(index));
-			// result = void.INCREASED;
-
 		}
-
-		// return result;
 	}
-
-	// @Override
-	// public void decreaseCoreFrequency(String computerURI, String
-	// processorURI, Integer coreNo) throws Exception {
-	// assert computerURI != null;
-	// assert processorURI != null;
-	// assert coreNo >= 0;
-	//
-	//// void result = void.STAGNATED;
-	// ComputerStaticStateI computerStaticState =
-	// computersStaticStates.get(computerURI);
-	// ProcessorManagementOutboundPort pmop = (ProcessorManagementOutboundPort)
-	// this.findPortFromURI("pmop-" + processorURI);
-	// ProcessorIntrospectionOutboundPort piop =
-	// (ProcessorIntrospectionOutboundPort) this.findPortFromURI("piop-" +
-	// processorURI);
-	// ProcessorStaticState pss = (ProcessorStaticState) piop.getStaticState();
-	// ProcessorDynamicState pds = (ProcessorDynamicState)
-	// piop.getDynamicState();
-	// List<Integer> admissibleFrequencies = null;
-	// Integer frequency = null;
-	// Integer index = null;
-	//
-	// /**
-	// * Vérification que le processeur demandé appartient bien à l'ordinateur
-	// */
-	//
-	// if
-	// (!computerStaticState.getProcessorURIs().values().contains(processorURI))
-	// throw new Exception("Le processeur n'appartient pas à cet ordinateur");
-	//
-	//
-	// /**
-	// * Vérifiaction que le processeur possède bien le numéro de coeur souhaité
-	// */
-	//
-	// if (!(coreNo < computerStaticState.getNumberOfCoresPerProcessor()))
-	// throw new Exception("Numéro de coeur trop haut, le processeur n'en
-	// possède pas autant");
-	//
-	// /**
-	// * Collecte de la fréquence courante du coeur
-	// */
-	//
-	// frequency = pds.getCurrentCoreFrequency(coreNo);
-	//
-	// /**
-	// * Constitution de la liste triée des fréquences admissible pour une
-	// augmentation
-	// * en palier de fréquences admissibles plutôt de que tatonner à la
-	// recherche d'une fréquence admissible
-	// */
-	//
-	// admissibleFrequencies = new ArrayList<>(pss.getAdmissibleFrequencies());
-	// Collections.sort(admissibleFrequencies);
-	//
-	// /**
-	// * Collecte de l'index de fréquence possible de la fréquence actuelle
-	// * et tentative d'incrémentation de cet index pour diminuer la fréquence
-	// d'un palier
-	// */
-	//
-	// index = admissibleFrequencies.indexOf(frequency);
-	//
-	// if (index == -1)
-	// throw new Exception("La fréquence n'a pas été trouvée parmis les
-	// fréquences admissibles");
-	//
-	// index -= 1;
-	//
-	// if (index < 0)
-	// return; //result;
-	//
-	// /**
-	// * Si il n'est pas possible de diminuer la fréquence du coeur souhaité,
-	// alors on diminue la fréquence de tous les coeurs
-	// */
-	//
-	// if (!piop.isCurrentlyPossibleFrequencyForCore(coreNo, frequency)) {
-	//
-	// for (int i = 0; i < computerStaticState.getNumberOfCoresPerProcessor();
-	// i++) {
-	// frequency = pds.getCurrentCoreFrequency(i);
-	// index = admissibleFrequencies.indexOf(frequency);
-	//
-	// if (index == -1)
-	// throw new Exception("La fréquence n'a pas été trouvée parmis les
-	// fréquences admissibles");
-	//
-	// index -= 1;
-	//
-	// /**
-	// * Vérification que le seuil minimum n'a pas été atteint
-	// */
-	//
-	// if (index < 0)
-	// break;
-	//
-	// pmop.setCoreFrequency(i, admissibleFrequencies.get(index));
-	//
-	//// /**
-	//// * Le coeur que nous voulons diminuer n'est pas à son minimum, donc le
-	// resultat de l'appel n'est pas une stagnation mais une diminution
-	//// */
-	////
-	//// if (i == coreNo)
-	//// result = void.DECREASED;
-	// }
-	//
-	// } else {
-	//
-	// /**
-	// * Le coeur est possible à diminuer sans craindre une différence de
-	// fréquences trop haute
-	// */
-	//
-	// pmop.setCoreFrequency(coreNo, admissibleFrequencies.get(index));
-	//// result = void.DECREASED;
-	//
-	// }
-	//
-	//// return result;
-	// }
 
 	@Override
 	public void increaseProcessorFrenquency(String computerURI, String processorURI) throws Exception {
 		assert computerURI != null;
 		assert processorURI != null;
-
-		// void result = void.STAGNATED;
-		ComputerStaticStateI computerStaticState = computersStaticStates.get(computerURI);
-		ProcessorManagementOutboundPort pmop = (ProcessorManagementOutboundPort) this
-				.findPortFromURI("pmop-" + processorURI);
-		ProcessorIntrospectionOutboundPort piop = (ProcessorIntrospectionOutboundPort) this
-				.findPortFromURI("piop-" + processorURI);
-		ProcessorStaticState pss = (ProcessorStaticState) piop.getStaticState();
-		ProcessorDynamicState pds = (ProcessorDynamicState) piop.getDynamicState();
-		List<Integer> admissibleFrequencies = null;
-		Integer frequency = null;
-		Integer index = null;
-
-		/**
-		 * Constitution de la liste triée des fréquences admissible pour une
-		 * augmentation en palier de fréquences admissibles plutôt de que
-		 * tatonner à la recherche d'une fréquence admissible
-		 */
-
-		admissibleFrequencies = new ArrayList<>(pss.getAdmissibleFrequencies());
-		Collections.sort(admissibleFrequencies);
 		
-		for (int i = 0; i < computerStaticState.getNumberOfCoresPerProcessor(); i++) {
-			frequency = pds.getCurrentCoreFrequency(i);
-			index = admissibleFrequencies.indexOf(frequency);
-
-			logMessage("On computer " + computerURI + ", on processor " + processorURI + ", the core " + i
-					+ ", the frequency is " + frequency);
-
-			if (index == -1)
-				throw new Exception("La fréquence n'a pas été trouvée parmis les fréquences admissibles");
-
-			index += 1;
-
-			/**
-			 * Vérification que le seuil maximum n'a pas été atteint
-			 */
-
-			if (index >= admissibleFrequencies.size())
-				continue;
-
-			logMessage("On computer " + computerURI + ", on processor " + processorURI + ", the core " + i
-					+ ", the frequency up to " + admissibleFrequencies.get(index));
-
-			pmop.setCoreFrequency(i, admissibleFrequencies.get(index));
-			// result = void.INCREASED;
-		}
-
-		// return result;
+		ComputerStaticStateI computerStaticState = computersStaticStates.get(computerURI);
+		
+		for (int i = 0; i < computerStaticState.getNumberOfCoresPerProcessor(); i++)
+			increaseCoreFrequency(computerURI, processorURI, i);
+		
 	}
 
 	@Override
@@ -1334,88 +1069,34 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		assert computerURI != null;
 		assert processorURI != null;
 
-		// void result = void.STAGNATED;
 		ComputerStaticStateI computerStaticState = computersStaticStates.get(computerURI);
-		ProcessorManagementOutboundPort pmop = (ProcessorManagementOutboundPort) this
-				.findPortFromURI("pmop-" + processorURI);
-		ProcessorIntrospectionOutboundPort piop = (ProcessorIntrospectionOutboundPort) this
-				.findPortFromURI("piop-" + processorURI);
-		ProcessorStaticState pss = (ProcessorStaticState) piop.getStaticState();
-		ProcessorDynamicState pds = (ProcessorDynamicState) piop.getDynamicState();
-		List<Integer> admissibleFrequencies = null;
-		Integer frequency = null;
-		Integer index = null;
 
-		/**
-		 * Constitution de la liste triée des fréquences admissible pour une
-		 * augmentation en palier de fréquences admissibles plutôt de que
-		 * tatonner à la recherche d'une fréquence admissible
-		 */
+		for (int i = 0; i < computerStaticState.getNumberOfCoresPerProcessor(); i++)
+			decreaseCoreFrequency(computerURI, processorURI, i);
 
-		admissibleFrequencies = new ArrayList<>(pss.getAdmissibleFrequencies());
-		Collections.sort(admissibleFrequencies);
-
-		for (int i = 0; i < computerStaticState.getNumberOfCoresPerProcessor(); i++) {
-			frequency = pds.getCurrentCoreFrequency(i);
-			index = admissibleFrequencies.indexOf(frequency);
-
-			logMessage("On computer " + computerURI + ", on processor " + processorURI + ", the core " + i
-					+ ", the frequency is " + frequency);
-
-			if (index == -1)
-				throw new Exception("La fréquence n'a pas été trouvée parmis les fréquences admissibles");
-
-			index -= 1;
-
-			/**
-			 * Vérification que le seuil minimum n'a pas été atteint
-			 */
-
-			if (index < 0)
-				continue;
-
-			logMessage("On computer " + computerURI + ", on processor " + processorURI + ", the core " + i
-					+ ", the frequency down to " + admissibleFrequencies.get(index));
-
-			pmop.setCoreFrequency(i, admissibleFrequencies.get(index));
-			// result = void.DECREASED;
-		}
-
-		// return result;
 	}
 
 	@Override
 	public void increaseProcessorsFrenquencies(String computerURI) throws Exception {
 		assert computerURI != null;
 
-		// void result = void.STAGNATED;
 		ComputerStaticStateI computerStaticState = computersStaticStates.get(computerURI);
 
 		for (String processorURI : computerStaticState.getProcessorURIs().values()) {
-			// void variation =
 			increaseProcessorFrenquency(computerURI, processorURI);
-			// if (variation != void.STAGNATED)
-			// result = variation;
 		}
-
-		// return result;
 	}
 
 	@Override
 	public void decreaseProcessorsFrenquencies(String computerURI) throws Exception {
 		assert computerURI != null;
 
-		// void result = void.STAGNATED;
 		ComputerStaticStateI computerStaticState = computersStaticStates.get(computerURI);
 
 		for (String processorURI : computerStaticState.getProcessorURIs().values()) {
-			// void variation =
 			decreaseProcessorFrenquency(computerURI, processorURI);
-			// if (variation != void.STAGNATED)
-			// result = variation;
 		}
 
-		// return result;
 	}
 
 	@Override
@@ -1424,37 +1105,16 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		assert avmURI != null;
 		assert cores > 0;
 
-		// void result = void.STAGNATED;
 
 		if (hasAvailableCoresFromComputer(computerURI, cores)) {
-			// ComputerServicesOutboundPort csop =
-			// (ComputerServicesOutboundPort)
-			// findPortFromURI(computerServicesOutboundPortMap.get(computerURI));
 			ComponentDataNode computerDataNode = admissionControllerDataNode.findByURI(computerURI);
 			String csipURI = computerDataNode.getPortLike(Tag.COMPUTER_SERVICES_INBOUND_PORT);
 			String csopURI = computerDataNode.getPortConnectedTo(csipURI);
 			ComputerServicesOutboundPort csop = (ComputerServicesOutboundPort) findPortFromURI(csopURI);
-			
+
 			AllocatedCore[] acs = csop.allocateCores(cores);
 
-			/**
-			 * Théoriquement il n'y a toujours qu'une unique valeur dans
-			 * applicationVMManagementOutboundPortsMap.get(avmURI).values() Mais
-			 * bon on vérifie quand même pour ne pas se retrouver avec un état
-			 * incohérent
-			 */
-
-			// if
-			// (applicationVMManagementOutboundPortsMap.get(avmURI).values().size()
-			// != 1)
-			if (admissionControllerDataNode.findByURI(avmURI)
-					.getPortLike(Tag.APPLICATION_VM_MANAGEMENT_OUTBOUND_PORT.toString()) != null)
-				throw new Exception("L'AVM " + avmURI
-						+ " possède plus de ports de management que prévu par le fonctionnement normal de la simulation");
-
 			ComponentDataNode avmdn = admissionControllerDataNode.findByURI(avmURI);
-
-//			System.out.println(avmdn);
 
 			String avmmipURI = avmdn.getPortLike(Tag.APPLICATION_VM_MANAGEMENT_INBOUND_PORT.toString());
 			String avmmopURI = avmdn.getPortConnectedTo(avmmipURI);
@@ -1463,16 +1123,11 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 
 			avmmop.allocateCores(acs);
 
-			// for (ApplicationVMManagementOutboundPort avmmop :
-			// applicationVMManagementOutboundPortsMap.get(avmURI).values())
-			// avmmop.allocateCores(acs);
-
 			logMessage("From " + computerURI + ", " + cores + " cores are been allocated to " + avmURI);
 		} else {
 			logMessage("No sufficient cores found on the computer : " + cores + "/" + computerAvailableCores(computerURI));
 		}
 
-		// return result;
 	}
 
 	@Override
@@ -1495,7 +1150,7 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 
 		ApplicationVMCoreReleasingOutboundPort avmcrop = (ApplicationVMCoreReleasingOutboundPort) this.findPortFromURI(cropURI);
 		avmcrop.releaseCores(cores);
-		
+
 		logMessage("From " + computerURI + ", " + cores + " cores are been ask to be released from " + avmURI);
 
 	}
@@ -1527,19 +1182,19 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 				break;
 			}
 		}
-		
+
 		if (cptcdn == null)
 			throw new Exception("The AVM " + avmURI + " doesn't have a computer parent ! ");
-		
+
 		ComponentDataNode cpt = admissionControllerDataNode.findByURI(cptcdn.uri);
 		String ccripURI = cpt.getPortLike(Tag.COMPUTER_CORE_RELEASING_INBOUND_PORT);
 		String ccropURI = cpt.getPortConnectedTo(ccripURI);
-		
+
 		ComputerCoreReleasingOutboundPort ccrop = (ComputerCoreReleasingOutboundPort) this.findPortFromURI(ccropURI);
 		ccrop.releaseCore(allocatedCore);
-		
+
 		System.out.println("\tComputerAvailableCores[" + cptcdn.uri + "] : " + computerAvailableCores(cptcdn.uri));
-		
+
 		logMessage("CORE RELEASING SUCCESSFUL FOR " + avmURI);
 
 	}
@@ -1558,15 +1213,11 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 	 */
 
 	protected int computerAvailableCores(String computerURI) throws Exception {
-		// ComputerDynamicStateDataOutboundPort cdsdop =
-		// (ComputerDynamicStateDataOutboundPort)
-		// findPortFromURI(computerDynamicStateDataOutboundPortMap.get(computerURI));
-		
 		ComponentDataNode computerDataNode = admissionControllerDataNode.findByURI(computerURI);
 		String cdsdipURI = computerDataNode.getPortLike(Tag.COMPUTER_DYNAMIC_STATE_DATA_INBOUND_PORT.toString());
 		String cdsdopURI = computerDataNode.getPortConnectedTo(cdsdipURI);
 		ComputerDynamicStateDataOutboundPort cdsdop = (ComputerDynamicStateDataOutboundPort) findPortFromURI(cdsdopURI);
-		
+
 		ComputerDynamicState data = (ComputerDynamicState) cdsdop.request();
 		boolean[][] cr = data.getCurrentCoreReservations();
 
@@ -1621,30 +1272,23 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 	 */
 
 	protected String findAvailableComputerForApplicationVMAllocation(int cores) throws Exception {
-		// assert computerServicesOutboundPortMap.size() > 0;
 		assert admissionControllerDataNode.children.size() != 0;
 
 		String computerURI = null;
-		// List<String> computerURIs = new
-		// ArrayList<>(computerServicesOutboundPortMap.keySet());
-		
-//		System.out.println(admissionControllerDataNode.graphToString());
-//		System.out.println(admissionControllerDataNode.getURIsLike(Tag.COMPUTER.toString()));
-//		System.exit(-100);
-		
+
 		// TODO Magouille trouvé pour le problème des uris imbriqués ... à corriger plus tard 
-		
+
 		List<String> someURIs = new ArrayList<>(admissionControllerDataNode.getURIsLike(Tag.COMPUTER.toString()));
 		List<String> computerURIs = new ArrayList<>();
-		
+
 		for (String uri : someURIs) {
 			if (uri.contains("processor"))
 				continue;
 			computerURIs.add(uri);
 		}
-		
+
 		// FIN DE MAGOUILLE
-		
+
 		for (String cURI : computerURIs) {
 			if (hasAvailableCoresFromComputer(cURI, cores)) {
 				computerURI = cURI;
@@ -1681,19 +1325,13 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		assert computerURI != null;
 		assert wantedCores > 0;
 
-//		ComputerServicesOutboundPort csop = (ComputerServicesOutboundPort) findPortFromURI(
-//				computerServicesOutboundPortMap.get(computerURI));
 		ComponentDataNode computerDataNode = admissionControllerDataNode.findByURI(computerURI);
 		String csipURI = computerDataNode.getPortLike(Tag.COMPUTER_SERVICES_INBOUND_PORT);
 		String csopURI = computerDataNode.getPortConnectedTo(csipURI);
 		ComputerServicesOutboundPort csop = (ComputerServicesOutboundPort) findPortFromURI(csopURI);
-		
+
 		AllocatedCore[] cores = csop.allocateCores(wantedCores);
 
-//		System.out.println("ORDINATEUR CIBLE : " + admissionControllerDataNode.findByURI(computerURI).toString());
-//		System.out.println("\t PORT DE AC UTILISE : " + csopURI);
-//		System.out.println("\t ETAT DE L'ORDI : ComputerAvailableCores[" + computerURI + "] : " + computerAvailableCores(computerURI));
-		
 		if (cores.length == wantedCores)
 			logMessage("(" + cores.length + "/" + wantedCores + ") Amount of wanted cores successfully found on "
 					+ computerURI);
@@ -1789,16 +1427,16 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		// Ajout des ports
 
 		requestGeneratorDataNode.addPort(requestGeneratorRequestNotificationInboundPortURI)
-				.addPort(requestGeneratorRequestSubmissionOutboundPortURI)
-				.addPort(requestGeneratorManagementInboundPortURI);
+		.addPort(requestGeneratorRequestSubmissionOutboundPortURI)
+		.addPort(requestGeneratorManagementInboundPortURI);
 
 		dispatcherDataNode.addPort(dispatcherManagementInboundPortURI);
 
 		applicationVMDataNode.addPort(applicationVMManagementInboundPortURI)
-				.addPort(applicationVMRequestSubmissionInboundPortURI)
-				.addPort(applicationVMRequestNotificationOutboundPortURI)
-				.addPort(applicationVMCoreReleasingInboundPortURI)
-				.addPort(applicationVMCoreReleasingNotificationOutboundPortURI);
+		.addPort(applicationVMRequestSubmissionInboundPortURI)
+		.addPort(applicationVMRequestNotificationOutboundPortURI)
+		.addPort(applicationVMCoreReleasingInboundPortURI)
+		.addPort(applicationVMCoreReleasingNotificationOutboundPortURI);
 		// Ajout des liens
 
 		dispatcherDataNode.addChild(requestGeneratorDataNode).addChild(applicationVMDataNode);
@@ -1843,8 +1481,6 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		dmop.publishPort();
 		dmop.doConnection(dispatcherManagementInboundPortURI, DispatcherManagementConnector.class.getCanonicalName());
 
-//		dispatcherManagementOutboundPortsMap.put(dispatcher.getURI(), dmop);
-
 		/**
 		 * Création du port de management pour la gestion du RequestGenerator
 		 */
@@ -1858,8 +1494,6 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 		rgmop.publishPort();
 		rgmop.doConnection(requestGeneratorManagementInboundPortURI,
 				RequestGeneratorManagementConnector.class.getCanonicalName());
-
-//		dispatcherRequestGeneratorManagementOutboundPortsMap.put(dispatcher.getURI(), rgmop);
 
 		/**
 		 * Création du port de management pour la gestion de l'AVM
@@ -1877,7 +1511,6 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 
 		Map<String, ApplicationVMManagementOutboundPort> avmmopsMap = new HashMap<>();
 		avmmopsMap.put(avmmopURI, avmmop);
-//		dispatcherApplicationVMManagementOutboundPortsMap.put(dispatcher.getURI(), avmmopsMap);
 
 		/**
 		 * Création du port d'émission des demande de libération de coeurs à
@@ -1961,9 +1594,9 @@ public class AdmissionController extends AbstractComponent implements AdmissionC
 				.findByOwnedPort(applicationVMCoreReleasingNotificationOutboundPortURI);
 
 		dispatcherDataNode.addPort(dispatcher.getRequestNotificationInboundPortURI())
-				.addPort(dispatcher.getRequestNotificationOutboundPortURI())
-				.addPort(dispatcher.getRequestSubmissionInboundPortURI())
-				.addPort(dispatcher.getRequestSubmissionOutboundPortURI());
+		.addPort(dispatcher.getRequestNotificationOutboundPortURI())
+		.addPort(dispatcher.getRequestSubmissionInboundPortURI())
+		.addPort(dispatcher.getRequestSubmissionOutboundPortURI());
 
 		admissionControllerDataNode.addPort(cropURI).addPort(crnipURI);
 

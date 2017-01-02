@@ -77,9 +77,8 @@ public enum Model {
 		this.admissibleFrequencies = new HashSet<>(admissibleFrequencies);
 		this.processingPower = new HashMap<>();
 
-		for (int i = 0; i <= processingPower.size()/2; i++) {
-			this.processingPower.put(processingPower.get(i), processingPower.get(i+1));
-		}
+		for (int i = 0; i <= processingPower.size()-1; i += 2)
+			this.processingPower.put(processingPower.get(i), processingPower.get(i + 1));
 		
 		try {
 			processor = new Processor(

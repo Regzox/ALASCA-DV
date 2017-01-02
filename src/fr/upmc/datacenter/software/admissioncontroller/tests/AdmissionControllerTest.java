@@ -128,33 +128,33 @@ public class AdmissionControllerTest extends AbstractCVM {
 				}
 			}).start() ;
 
-			new Thread(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						target.scenario() ;
-					} catch (Exception e) {
-						throw new RuntimeException(e) ;
-					}
-				}
-			}).start() ;
+//			new Thread(new Runnable() {
+//				@Override
+//				public void run() {
+//					try {
+//						target.scenario() ;
+//					} catch (Exception e) {
+//						throw new RuntimeException(e) ;
+//					}
+//				}
+//			}).start() ;
 
 			/**
 			 * Lancement d'une incrémentation sur le contrôleur d'admission
 			 */
 
-			Thread.sleep(5000L);
-			
-			new Thread(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						target.incrementation();
-					} catch (Exception e) {
-						throw new RuntimeException(e) ;
-					}
-				}
-			}).start() ;
+//			Thread.sleep(5000L);
+//			
+//			new Thread(new Runnable() {
+//				@Override
+//				public void run() {
+//					try {
+//						target.incrementation();
+//					} catch (Exception e) {
+//						throw new RuntimeException(e) ;
+//					}
+//				}
+//			}).start() ;
 
 			Thread.sleep(30000L);
 
