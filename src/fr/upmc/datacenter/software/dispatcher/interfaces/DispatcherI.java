@@ -1,5 +1,7 @@
 package fr.upmc.datacenter.software.dispatcher.interfaces;
 
+import java.util.List;
+
 import fr.upmc.datacenter.software.interfaces.RequestI;
 
 public interface DispatcherI {
@@ -72,7 +74,8 @@ public interface DispatcherI {
 	
 	String getURI();
 	String getRequestSubmissionInboundPortURI();
-	String getRequestSubmissionOutboundPortURI();
-	String getRequestNotificationInboundPortURI();
+	List<String> getRequestSubmissionOutboundPortURIs();
+	List<String> getRequestNotificationInboundPortURIs();
 	String getRequestNotificationOutboundPortURI();
+	String getApplicationVMReleasingNotificationOutboundPortURI();
 }

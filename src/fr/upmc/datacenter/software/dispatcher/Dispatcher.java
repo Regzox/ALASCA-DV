@@ -18,11 +18,13 @@ import fr.upmc.datacenter.software.dispatcher.time.Chronometer;
 import fr.upmc.datacenter.software.dispatcher.time.interfaces.ChronometerI;
 import fr.upmc.datacenter.software.dispatcher.time.interfaces.DurationI;
 import fr.upmc.datacenter.software.enumerations.Tag;
+import fr.upmc.datacenter.software.interfaces.ApplicationVMReleasingNotificationI;
 import fr.upmc.datacenter.software.interfaces.RequestI;
 import fr.upmc.datacenter.software.interfaces.RequestNotificationHandlerI;
 import fr.upmc.datacenter.software.interfaces.RequestNotificationI;
 import fr.upmc.datacenter.software.interfaces.RequestSubmissionHandlerI;
 import fr.upmc.datacenter.software.interfaces.RequestSubmissionI;
+import fr.upmc.datacenter.software.ports.ApplicationVMReleasingNotificationOutboundPort;
 import fr.upmc.datacenter.software.ports.RequestNotificationInboundPort;
 import fr.upmc.datacenter.software.ports.RequestNotificationOutboundPort;
 import fr.upmc.datacenter.software.ports.RequestSubmissionInboundPort;
@@ -54,9 +56,11 @@ public class Dispatcher extends AbstractComponent
 	
 	protected String uri;		
 	
-	protected String rsipURI, rsopURI, rnipURI, rnopURI;
+	protected String rsipURI, rnopURI, avmrnopURI;
+	protected List<String> rnipURIs, rsopURIs;
 	
 	protected DispatcherManagementInboundPort dmip;
+	protected ApplicationVMReleasingNotificationOutboundPort avmrnop;
 	
 	/**
 	 * Dispatcher constructor takes an uri his name,
@@ -71,18 +75,26 @@ public class Dispatcher extends AbstractComponent
 	
 	public Dispatcher(	
 			String uri,
-			String dispatcherManagementInboundPort
+			String dispatcherManagementInboundPort,
+			String applicationVMReleasingNotificationOutboundPort
 			)
 					throws Exception 
 	{
 		super(1, 1);
 		this.uri = uri;
+		rnipURIs = new ArrayList<>();
+		rsopURIs = new ArrayList<>();
 		
 		addOfferedInterface(DispatcherManagementI.class);
 		dmip = new DispatcherManagementInboundPort(dispatcherManagementInboundPort, DispatcherManagementI.class, this);
 		addPort(dmip);
 		dmip.publishPort();
-
+		
+		addRequiredInterface(ApplicationVMReleasingNotificationI.class);
+		avmrnopURI = applicationVMReleasingNotificationOutboundPort;
+		avmrnop = new ApplicationVMReleasingNotificationOutboundPort(avmrnopURI, ApplicationVMReleasingNotificationI.class, this);
+		addPort(avmrnop);
+		avmrnop.publishPort();
 	}
 	
 	@Override
@@ -160,16 +172,20 @@ public class Dispatcher extends AbstractComponent
 		if (!requiredInterfaces.contains(RequestSubmissionI.class))
 			addRequiredInterface(RequestSubmissionI.class);
 		
-		rsopURI = generateURI(Tag.REQUEST_SUBMISSION_OUTBOUND_PORT);
+		String rsopURI = generateURI(Tag.REQUEST_SUBMISSION_OUTBOUND_PORT);
 		RequestSubmissionOutboundPort rsop = new RequestSubmissionOutboundPort(rsopURI, this);
 		addPort(rsop);
 		rsop.publishPort();
 		rsop.doConnection(rsipURI, RequestSubmissionConnector.class.getCanonicalName());
+	
+		rsopURIs.add(rsopURI);
 		
-		rnipURI = generateURI(Tag.REQUEST_NOTIFICATION_INBOUND_PORT);
+		String rnipURI = generateURI(Tag.REQUEST_NOTIFICATION_INBOUND_PORT);
 		RequestNotificationInboundPort rnip = new RequestNotificationInboundPort(rnipURI, this);
 		addPort(rnip);
 		rnip.publishPort();
+		
+		rnipURIs.add(rnipURI);
 		
 		pendings.put(rsopURI, new ArrayList<String>());
 		performed.put(rsopURI, 0);
@@ -183,6 +199,7 @@ public class Dispatcher extends AbstractComponent
 	public void disconnectFromApplicationVM() throws Exception {
 		String rsopURI = lessBusyRequestSubmissionOutboundPortURI();
 		terminating.addElement(rsopURI);
+		tryToPerformApplicationVMDisconnection();
 	}
 
 	@Override
@@ -332,6 +349,11 @@ public class Dispatcher extends AbstractComponent
 			rsop.unpublishPort();
 			removePort(rsop);
 			rsop.destroyPort();
+			
+			int index = rsopURIs.indexOf(rsopURI);
+			rsopURIs.remove(index);			
+			
+			avmrnop.notifyApplicationVMReleasing(uri, rsopURI, rnipURIs.remove(index));
 		}	
 	}
 	
@@ -372,18 +394,23 @@ public class Dispatcher extends AbstractComponent
 	}
 
 	@Override
-	public String getRequestSubmissionOutboundPortURI() {
-		return rsopURI;
+	public List<String> getRequestSubmissionOutboundPortURIs() {
+		return rsopURIs;
 	}
 
 	@Override
-	public String getRequestNotificationInboundPortURI() {
-		return rnipURI;
+	public List<String> getRequestNotificationInboundPortURIs() {
+		return rnipURIs;
 	}
 
 	@Override
 	public String getRequestNotificationOutboundPortURI() {
 		return rnopURI;
+	}
+
+	@Override
+	public String getApplicationVMReleasingNotificationOutboundPortURI() {
+		return avmrnopURI;
 	}
 	
 }

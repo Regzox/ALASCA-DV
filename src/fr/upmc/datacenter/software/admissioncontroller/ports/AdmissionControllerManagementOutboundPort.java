@@ -94,21 +94,21 @@ public class AdmissionControllerManagementOutboundPort
 
 	@Override
 	public void allocateCores(String computerURI, String avmURI, int cores) throws Exception {
-
+		((AdmissionControllerManagementI) this.connector).allocateCores(computerURI, avmURI, cores);
 	}
 
 	@Override
-	public void releaseCores(String compterURI, String avmURI, int cores) throws Exception {
-
+	public void releaseCores(String computerURI, String avmURI, int cores) throws Exception {
+		((AdmissionControllerManagementI) this.connector).releaseCores(computerURI, avmURI, cores);
 	}
 
-//	@Override
-//	public void increaseAVMs(String dispatcherURI) {
-//		
-//	}
-//
-//	@Override
-//	public void decreaseAVMs(String dispatcherURI) {
-//
-//	}
+	@Override
+	public void increaseAVMs(String dispatcherURI) throws Exception {
+		((AdmissionControllerManagementI) this.connector).increaseAVMs(dispatcherURI);
+	}
+
+	@Override
+	public void decreaseAVMs(String dispatcherURI) throws Exception {
+		((AdmissionControllerManagementI) this.connector).decreaseAVMs(dispatcherURI);
+	}
 }

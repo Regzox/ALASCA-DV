@@ -133,11 +133,11 @@ public interface AdmissionControllerManagementI
 	
 	void allocateCores(String computerURI, String avmURI, int cores) throws Exception;
 	
-	void releaseCores(String compterURI, String avmURI, int cores) throws Exception;
+	void releaseCores(String computerURI, String avmURI, int cores) throws Exception;
 	
-//	void increaseAVMs(String dispatcherURI);
-//	
-//	void decreaseAVMs(String dispatcherURI);
+	void increaseAVMs(String dispatcherURI) throws Exception;
+	
+	void decreaseAVMs(String dispatcherURI) throws Exception;
 	
 	
 }

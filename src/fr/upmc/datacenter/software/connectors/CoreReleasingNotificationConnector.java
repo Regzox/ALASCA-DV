@@ -4,7 +4,7 @@ import fr.upmc.components.connectors.AbstractConnector;
 import fr.upmc.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.upmc.datacenter.software.interfaces.CoreReleasingNotificationI;
 
-public class CoreReleasingNotifiactionConnector
+public class CoreReleasingNotificationConnector
 	extends
 		AbstractConnector
 	implements

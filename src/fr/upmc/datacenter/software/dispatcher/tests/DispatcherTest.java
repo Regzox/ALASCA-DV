@@ -106,7 +106,8 @@ public class DispatcherTest
 		 */
 		
 		Dispatcher dispatcher = new Dispatcher("dispatcher",
-				dispatcher_ManagementInboundPort);
+				dispatcher_ManagementInboundPort, 
+				"applicationVM-releasing-notification-outbound-port");
 //		Dispatcher dispatcher = new Dispatcher();
 //		dispatcher.plugRequestGenerator(
 //				requestGenarator_RequestSubmissionOutboundPortURI,

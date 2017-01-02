@@ -223,23 +223,63 @@ AdmissionControllerManagementI
 
 	@Override
 	public void allocateCores(String computerURI, String avmURI, int cores) throws Exception {
+		final AdmissionController admissionController = (AdmissionController) this.owner;
 
+		admissionController.handleRequestSync(new ComponentService<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				admissionController.allocateCores(computerURI, avmURI, cores);
+				return null;
+			}
+
+		});
 	}
 
 	@Override
-	public void releaseCores(String compterURI, String avmURI, int cores) throws Exception {
+	public void releaseCores(String computerURI, String avmURI, int cores) throws Exception {
+		final AdmissionController admissionController = (AdmissionController) this.owner;
 
+		admissionController.handleRequestSync(new ComponentService<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				admissionController.releaseCores(computerURI, avmURI, cores);
+				return null;
+			}
+
+		});
 	}
 
-//	@Override
-//	public void increaseAVMs(String dispatcherURI) {
-//		
-//	}
-//
-//	@Override
-//	public void decreaseAVMs(String dispatcherURI) {
-//
-//	}
+	@Override
+	public void increaseAVMs(String dispatcherURI) throws Exception {
+		final AdmissionController admissionController = (AdmissionController) this.owner;
+
+		admissionController.handleRequestSync(new ComponentService<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				admissionController.increaseAVMs(dispatcherURI);
+				return null;
+			}
+
+		});
+	}
+
+	@Override
+	public void decreaseAVMs(String dispatcherURI) throws Exception {
+		final AdmissionController admissionController = (AdmissionController) this.owner;
+
+		admissionController.handleRequestSync(new ComponentService<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				admissionController.decreaseAVMs(dispatcherURI);
+				return null;
+			}
+
+		});
+	}
 
 
 }

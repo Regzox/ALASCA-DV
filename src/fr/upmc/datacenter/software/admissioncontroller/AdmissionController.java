@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Vector;
 
 import fr.upmc.components.AbstractComponent;
 import fr.upmc.components.connectors.DataConnector;
@@ -48,7 +49,8 @@ import fr.upmc.datacenter.software.applicationvm.extended.connectors.Application
 import fr.upmc.datacenter.software.applicationvm.extended.interfaces.ApplicationVMCoreReleasingI;
 import fr.upmc.datacenter.software.applicationvm.extended.ports.ApplicationVMCoreReleasingOutboundPort;
 import fr.upmc.datacenter.software.applicationvm.ports.ApplicationVMManagementOutboundPort;
-import fr.upmc.datacenter.software.connectors.CoreReleasingNotifiactionConnector;
+import fr.upmc.datacenter.software.connectors.ApplicationVMReleasingNotificationConnector;
+import fr.upmc.datacenter.software.connectors.CoreReleasingNotificationConnector;
 import fr.upmc.datacenter.software.connectors.RequestNotificationConnector;
 import fr.upmc.datacenter.software.connectors.RequestSubmissionConnector;
 import fr.upmc.datacenter.software.dispatcher.Dispatcher;
@@ -56,12 +58,17 @@ import fr.upmc.datacenter.software.dispatcher.connectors.DispatcherManagementCon
 import fr.upmc.datacenter.software.dispatcher.interfaces.DispatcherManagementI;
 import fr.upmc.datacenter.software.dispatcher.ports.DispatcherManagementOutboundPort;
 import fr.upmc.datacenter.software.enumerations.Tag;
+import fr.upmc.datacenter.software.interfaces.ApplicationVMReleasingNotificationHandlerI;
+import fr.upmc.datacenter.software.interfaces.ApplicationVMReleasingNotificationI;
 import fr.upmc.datacenter.software.interfaces.CoreReleasingNotificationHandlerI;
 import fr.upmc.datacenter.software.interfaces.CoreReleasingNotificationI;
 import fr.upmc.datacenter.software.interfaces.RequestNotificationI;
 import fr.upmc.datacenter.software.interfaces.RequestSubmissionI;
+import fr.upmc.datacenter.software.ports.ApplicationVMReleasingNotificationInboundPort;
+import fr.upmc.datacenter.software.ports.ApplicationVMReleasingNotificationOutboundPort;
 import fr.upmc.datacenter.software.ports.CoreReleasingNotificationInboundPort;
 import fr.upmc.datacenter.software.ports.CoreReleasingNotificationOutboundPort;
+import fr.upmc.datacenter.software.ports.RequestNotificationInboundPort;
 import fr.upmc.datacenter.software.ports.RequestNotificationOutboundPort;
 import fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort;
 import fr.upmc.datacenterclient.requestgenerator.RequestGenerator;
@@ -91,7 +98,8 @@ public class AdmissionController
 		AdmissionControllerI,
 		AdmissionControllerManagementI, 
 		ComputerStateDataConsumerI, 
-		CoreReleasingNotificationHandlerI 
+		CoreReleasingNotificationHandlerI,
+		ApplicationVMReleasingNotificationHandlerI
 {
 	public static boolean LOGGING_ALL = false;
 	public static boolean LOGGING_REQUEST_GENERATOR = false;
@@ -102,6 +110,11 @@ public class AdmissionController
 	protected Map<String, ComputerStaticStateI> computersStaticStates;
 	protected Map<String, ComputerDynamicStateI> computersDynamicStates;
 	protected ComponentDataNode admissionControllerDataNode;
+	
+	protected Map<String, Dispatcher> dispatcherMap;
+	protected Map<String, ApplicationVM> applicationVMMap;
+	protected Map<String, RequestGenerator> requestGeneratorMap;
+	protected List<ApplicationVM> unusedAVMs;
 
 	/**
 	 * Construction d'un {@link AdmissionController} ayant pour nom <em>uri</em>
@@ -119,6 +132,10 @@ public class AdmissionController
 		this.uri = uri;
 		computersStaticStates = new HashMap<>();
 		computersDynamicStates = new HashMap<>();
+		dispatcherMap = new HashMap<>();
+		applicationVMMap = new HashMap<>();
+		requestGeneratorMap = new HashMap<>();
+		unusedAVMs = new Vector<>();
 
 		admissionControllerDataNode = new ComponentDataNode(uri);
 		if (!offeredInterfaces.contains(AdmissionControllerManagementI.class))
@@ -326,16 +343,29 @@ public class AdmissionController
 
 		final String dispatcherURI = generateURI(Tag.DISPATCHER);
 		final String dispatcherManagementInboundPortURI = generateURI(Tag.DISPATCHER_MANAGEMENT_INBOUND_PORT);
+		final String dispatcherApplicationVMReleasingNotificationOutboundPortURI = generateURI(Tag.APPLICATION_VM_RELEASING_NOTIFICATION_OUTBOUND_PORT);
 
 		Dispatcher dsp = null;
 
-		List<AbstractComponent> components = deploy(rgn, requestGeneratorURI, meanInterArrivalTime,
-				meanNumberOfInstructions, requestGeneratorManagementInboundPortURI,
-				requestGeneratorRequestSubmissionOutboundPortURI, requestGeneratorRequestNotificationInboundPortURI,
-				avm, applicationVMURI, applicationVMManagementInboundPortURI,
-				applicationVMRequestSubmissionInboundPortURI, applicationVMRequestNotificationOutboundPortURI,
-				applicationVMCoreReleasingInboundPortURI, applicationVMCoreReleasingNotificationOutboundPortURI, dsp,
-				dispatcherURI, dispatcherManagementInboundPortURI);
+		List<AbstractComponent> components = deploy(
+				rgn, 
+				requestGeneratorURI, 
+				meanInterArrivalTime,
+				meanNumberOfInstructions, 
+				requestGeneratorManagementInboundPortURI,
+				requestGeneratorRequestSubmissionOutboundPortURI, 
+				requestGeneratorRequestNotificationInboundPortURI,
+				avm, 
+				applicationVMURI, 
+				applicationVMManagementInboundPortURI,
+				applicationVMRequestSubmissionInboundPortURI, 
+				applicationVMRequestNotificationOutboundPortURI,
+				applicationVMCoreReleasingInboundPortURI, 
+				applicationVMCoreReleasingNotificationOutboundPortURI, 
+				dsp,
+				dispatcherURI, 
+				dispatcherManagementInboundPortURI,
+				dispatcherApplicationVMReleasingNotificationOutboundPortURI);
 
 		rgn = (RequestGenerator) components.get(0);
 		avm = (ApplicationVM) components.get(1);
@@ -352,11 +382,20 @@ public class AdmissionController
 
 		cptdn.addChild(avmdn);
 
-		String rgmop = connect(rgn, requestGeneratorManagementInboundPortURI,
-				requestGeneratorRequestNotificationInboundPortURI, requestGeneratorRequestSubmissionOutboundPortURI,
-				avm, applicationVMManagementInboundPortURI, applicationVMRequestSubmissionInboundPortURI,
-				applicationVMRequestNotificationOutboundPortURI, applicationVMCoreReleasingInboundPortURI,
-				applicationVMCoreReleasingNotificationOutboundPortURI, dsp, dispatcherManagementInboundPortURI);
+		String rgmop = connect(
+				rgn, 
+				requestGeneratorManagementInboundPortURI,
+				requestGeneratorRequestNotificationInboundPortURI, 
+				requestGeneratorRequestSubmissionOutboundPortURI,
+				avm, 
+				applicationVMManagementInboundPortURI, 
+				applicationVMRequestSubmissionInboundPortURI,
+				applicationVMRequestNotificationOutboundPortURI, 
+				applicationVMCoreReleasingInboundPortURI,
+				applicationVMCoreReleasingNotificationOutboundPortURI, 
+				dsp, 
+				dispatcherManagementInboundPortURI,
+				dispatcherApplicationVMReleasingNotificationOutboundPortURI);
 
 		/**
 		 * Si à ce stade aucun coeurs n'est disponible alors nous nous trouvons
@@ -387,6 +426,9 @@ public class AdmissionController
 		System.out.println("\tComputerAvailableCores[" + computerURI + "] : " + computerAvailableCores(computerURI));
 		
 		allocateCores(computerURI, applicationVMURI, 15);
+		
+		decreaseAVMs(dispatcherURI);
+		//System.exit(0);
 	
 		System.out.println("\tComputerAvailableCores[" + computerURI + "] : " + computerAvailableCores(computerURI));
 
@@ -499,8 +541,9 @@ public class AdmissionController
 
 		final String dispatcherURI = generateURI(Tag.DISPATCHER);
 		final String dispatcherManagementInboundPortURI = generateURI(Tag.DISPATCHER_MANAGEMENT_INBOUND_PORT);
+		final String dispatcherApplicationVMReleasingNotificationOutboundPortURI = generateURI(Tag.APPLICATION_VM_RELEASING_NOTIFICATION_OUTBOUND_PORT);
 
-		Dispatcher dispatcher = new Dispatcher(dispatcherURI, dispatcherManagementInboundPortURI);
+		Dispatcher dispatcher = new Dispatcher(dispatcherURI, dispatcherManagementInboundPortURI, dispatcherApplicationVMReleasingNotificationOutboundPortURI);
 		AbstractCVM.theCVM.addDeployedComponent(dispatcher);
 
 		if (LOGGING_ALL | LOGGING_DISPATCHER) {
@@ -1155,15 +1198,60 @@ public class AdmissionController
 
 	}
 
-	// @Override
-	// public void increaseAVMs(String dispatcherURI) {
-	//
-	// }
-	//
-	// @Override
-	// public void decreaseAVMs(String dispatcherURI) {
-	//
-	// }
+	 @Override
+	 public void increaseAVMs(String dispatcherURI) throws Exception {
+		 ComponentDataNode dspdn = admissionControllerDataNode.findByURI(dispatcherURI);
+		 String dmipURI = dspdn.getPortLike(Tag.DISPATCHER_MANAGEMENT_INBOUND_PORT);
+		 String dmopURI = dspdn.getPortConnectedTo(dmipURI);
+		 DispatcherManagementOutboundPort dmop = (DispatcherManagementOutboundPort) findPortFromURI(dmopURI);
+		 
+		 /** TODO
+		  * Voir si dans la liste des AVM non utilisées il y a un membre.
+		  * Le connecter au dispatcher si oui.
+		  * Voir s'il y a un ordinateur avec un coeur de libre.
+		  * Allouer ce coeur.
+		  * Créer une AVM, la déployer sur la CVM.
+		  * Connecter l'AVM et le Dispatcher.
+		  * Mettre les ComponentDataNodes à jour
+		  * 
+		  * IL restera ensuite à faire les ports de communication des données dynamiques
+		  * envoyés par les dispatchers au contrôleur d'admission, puis d'écrire les méthodes de
+		  * d'analyse/décision pour induire une action.  
+		  */
+		 
+		 final String avmURI = generateURI(Tag.APPLICATION_VM);
+		 final String avmmipURI = generateURI(Tag.APPLICATION_VM_MANAGEMENT_INBOUND_PORT);
+		 final String rsipURI = generateURI(Tag.REQUEST_SUBMISSION_INBOUND_PORT);
+		 final String rnopURI = generateURI(Tag.REQUEST_NOTIFICATION_OUTBOUND_PORT);
+		 final String cripURI = generateURI(Tag.APPLICATION_VM_CORE_RELEASING_INBOUND_PORT);
+		 final String crnopURI = generateURI(Tag.APPLICATION_VM_CORE_RELEASING_NOTIFICATION_OUTBOUND_PORT);
+		 
+		 ApplicationVM avm = new ApplicationVM(
+				 avmURI, 
+				 avmmipURI, 
+				 rsipURI, 
+				 rnopURI, 
+				 cripURI, 
+				 crnopURI);
+		 AbstractCVM.theCVM.addDeployedComponent(avm);
+		 
+		 applicationVMMap.put(avmURI, avm);
+			 
+		 Dispatcher dsp = dispatcherMap.get(dispatcherURI);
+		 
+		 
+		 dmop.connectToApplicationVM(rsipURI);
+	 }
+	
+	 @Override
+	 public void decreaseAVMs(String dispatcherURI) throws Exception {
+		 ComponentDataNode dspdn = admissionControllerDataNode.findByURI(dispatcherURI);
+		 String dmipURI = dspdn.getPortLike(Tag.DISPATCHER_MANAGEMENT_INBOUND_PORT);
+		 String dmopURI = dspdn.getPortConnectedTo(dmipURI);
+		 DispatcherManagementOutboundPort dmop = (DispatcherManagementOutboundPort) findPortFromURI(dmopURI);
+		 
+		 dmop.disconnectFromApplicationVM();
+	 }
 
 	@Override
 	public void acceptCoreReleasing(String avmURI, AllocatedCore allocatedCore) throws Exception {
@@ -1197,6 +1285,43 @@ public class AdmissionController
 
 		logMessage("CORE RELEASING SUCCESSFUL FOR " + avmURI);
 
+	}
+	
+	@Override
+	public void acceptApplicationVMReleasing(String dispatcherURI, String rsopURI, String rnipURI) throws Exception {
+		// TODO Auto-generated method stub		
+		
+		ComponentDataNode dspdn = admissionControllerDataNode.findByURI(dispatcherURI);
+		ComponentDataNode avmdn = admissionControllerDataNode.findByConnectedPort(rsopURI);
+		
+		ApplicationVM avm = applicationVMMap.get(avmdn.uri);
+		String avmrnopURI = avmdn.getPortLike(Tag.REQUEST_NOTIFICATION_OUTBOUND_PORT);
+		RequestNotificationOutboundPort avmrnop = (RequestNotificationOutboundPort) avm.findPortFromURI(avmrnopURI);
+		
+		/**
+		 * Déconnexion de l'AVM du dispatcher
+		 */
+		
+		avmrnop.doDisconnection();
+		
+		/**
+		 * Destruction du port de réception des notifications de requêtes du dispatcher 
+		 */
+		
+		Dispatcher dsp = dispatcherMap.get(dispatcherURI);
+		RequestNotificationInboundPort rnip = (RequestNotificationInboundPort) dsp.findPortFromURI(rnipURI);
+		rnip.unpublishPort();
+		dsp.removePort(rnip);
+		rnip.destroyPort();
+		
+		dspdn
+		.disconnect(rsopURI)
+		.disconnect(rnipURI)
+		.removeChild(avmdn);	
+		
+		System.out.println(dspdn);
+		
+		logMessage("AVM RELEASING SUCCESSFUL FOR " + dispatcherURI);
 	}
 
 	/**************************************************
@@ -1376,14 +1501,25 @@ public class AdmissionController
 	 * @throws Exception
 	 */
 
-	protected List<AbstractComponent> deploy(RequestGenerator rgn, String requestGeneratorURI,
-			double meanInterArrivalTime, long meanNumberOfInstructions, String requestGeneratorManagementInboundPortURI,
+	protected List<AbstractComponent> deploy(
+			RequestGenerator rgn, 
+			String requestGeneratorURI,
+			double meanInterArrivalTime, 
+			long meanNumberOfInstructions, 
+			String requestGeneratorManagementInboundPortURI,
 			String requestGeneratorRequestSubmissionOutboundPortURI,
-			String requestGeneratorRequestNotificationInboundPortURI, ApplicationVM avm, String applicationVMURI,
-			String applicationVMManagementInboundPortURI, String applicationVMRequestSubmissionInboundPortURI,
-			String applicationVMRequestNotificationOutboundPortURI, String applicationVMCoreReleasingInboundPortURI,
-			String applicationVMCoreReleasingNotificationOutboundPortURI, Dispatcher dsp, String dispatcherURI,
-			String dispatcherManagementInboundPortURI) throws Exception {
+			String requestGeneratorRequestNotificationInboundPortURI, 
+			ApplicationVM avm, 
+			String applicationVMURI,
+			String applicationVMManagementInboundPortURI, 
+			String applicationVMRequestSubmissionInboundPortURI,
+			String applicationVMRequestNotificationOutboundPortURI, 
+			String applicationVMCoreReleasingInboundPortURI,
+			String applicationVMCoreReleasingNotificationOutboundPortURI, 
+			Dispatcher dsp, 
+			String dispatcherURI,
+			String dispatcherManagementInboundPortURI,
+			String dispatcherApplicationVMReleasingOutboundPortURI) throws Exception {
 
 		rgn = new RequestGenerator(requestGeneratorURI, meanInterArrivalTime, meanNumberOfInstructions,
 				requestGeneratorManagementInboundPortURI, requestGeneratorRequestSubmissionOutboundPortURI,
@@ -1405,9 +1541,9 @@ public class AdmissionController
 			avm.toggleTracing();
 		}
 
-		dsp = new Dispatcher(dispatcherURI, dispatcherManagementInboundPortURI);
+		dsp = new Dispatcher(dispatcherURI, dispatcherManagementInboundPortURI, dispatcherApplicationVMReleasingOutboundPortURI);
 		AbstractCVM.theCVM.addDeployedComponent(dsp);
-
+		
 		if (LOGGING_ALL | LOGGING_DISPATCHER) {
 			dsp.toggleLogging();
 			dsp.toggleTracing();
@@ -1417,6 +1553,10 @@ public class AdmissionController
 		components.add(rgn);
 		components.add(avm);
 		components.add(dsp);
+		
+		requestGeneratorMap.put(requestGeneratorURI, rgn);
+		applicationVMMap.put(applicationVMURI, avm);
+		dispatcherMap.put(dispatcherURI, dsp);
 
 		// TODO AJOUTER LE DISPATCHER ET LES AUTRES COMPOSANTS AUX
 		// COMPONENTDATANODES
@@ -1426,22 +1566,29 @@ public class AdmissionController
 
 		// Ajout des ports
 
-		requestGeneratorDataNode.addPort(requestGeneratorRequestNotificationInboundPortURI)
+		requestGeneratorDataNode
+		.addPort(requestGeneratorRequestNotificationInboundPortURI)
 		.addPort(requestGeneratorRequestSubmissionOutboundPortURI)
 		.addPort(requestGeneratorManagementInboundPortURI);
 
-		dispatcherDataNode.addPort(dispatcherManagementInboundPortURI);
+		dispatcherDataNode
+		.addPort(dispatcherManagementInboundPortURI)
+		.addPort(dispatcherApplicationVMReleasingOutboundPortURI);
 
-		applicationVMDataNode.addPort(applicationVMManagementInboundPortURI)
+		applicationVMDataNode
+		.addPort(applicationVMManagementInboundPortURI)
 		.addPort(applicationVMRequestSubmissionInboundPortURI)
 		.addPort(applicationVMRequestNotificationOutboundPortURI)
 		.addPort(applicationVMCoreReleasingInboundPortURI)
 		.addPort(applicationVMCoreReleasingNotificationOutboundPortURI);
 		// Ajout des liens
 
-		dispatcherDataNode.addChild(requestGeneratorDataNode).addChild(applicationVMDataNode);
+		dispatcherDataNode
+		.addChild(requestGeneratorDataNode)
+		.addChild(applicationVMDataNode);
 
-		admissionControllerDataNode.addChild(dispatcherDataNode);
+		admissionControllerDataNode
+		.addChild(dispatcherDataNode);
 
 		return components;
 	}
@@ -1468,7 +1615,8 @@ public class AdmissionController
 			String applicationVMManagementInboundPortURI, String applicationVMRequestSubmissionInboundPortURI,
 			String applicationVMRequestNotificationOutboundPortURI, String applicationVMCoreReleasingInboundPortURI,
 			String applicationVMCoreReleasingNotificationOutboundPortURI, Dispatcher dispatcher,
-			String dispatcherManagementInboundPortURI) throws Exception {
+			String dispatcherManagementInboundPortURI,
+			String dispatcherApplicationVMReleasingNotificationOutboundPortURI) throws Exception {
 		/**
 		 * Création d'un port de contrôle pour la gestion du dispatcher
 		 */
@@ -1476,7 +1624,8 @@ public class AdmissionController
 		if (!requiredInterfaces.contains(DispatcherManagementI.class))
 			addRequiredInterface(DispatcherManagementI.class);
 
-		DispatcherManagementOutboundPort dmop = new DispatcherManagementOutboundPort(DispatcherManagementI.class, this);
+		final String dmopURI = generateURI(Tag.DISPATCHER_MANAGEMENT_OUTBOUND_PORT);
+		DispatcherManagementOutboundPort dmop = new DispatcherManagementOutboundPort(dmopURI, DispatcherManagementI.class, this);
 		addPort(dmop);
 		dmop.publishPort();
 		dmop.doConnection(dispatcherManagementInboundPortURI, DispatcherManagementConnector.class.getCanonicalName());
@@ -1537,7 +1686,22 @@ public class AdmissionController
 				CoreReleasingNotificationI.class, this);
 		addPort(crnip);
 		crnip.publishPort();
-
+		
+		/**
+		 * Création du port de récéption des libération d'AVM
+		 */
+		
+		if (!offeredInterfaces.contains(ApplicationVMReleasingNotificationI.class))
+			addOfferedInterface(ApplicationVMReleasingNotificationI.class);
+		
+		final String avmrnipURI = generateURI(Tag.APPLICATION_VM_RELEASING_NOTIFICATION_INBOUND_PORT);
+		
+		ApplicationVMReleasingNotificationInboundPort avmrnip = 
+				new ApplicationVMReleasingNotificationInboundPort(avmrnipURI, ApplicationVMReleasingNotificationI.class, this);
+		addPort(avmrnip);
+		avmrnip.publishPort();
+		
+		
 		/****************************************************************************************************/
 
 		/**
@@ -1577,10 +1741,19 @@ public class AdmissionController
 
 		CoreReleasingNotificationOutboundPort crnop = (CoreReleasingNotificationOutboundPort) avm
 				.findPortFromURI(applicationVMCoreReleasingNotificationOutboundPortURI);
-		crnop.doConnection(crnipURI, CoreReleasingNotifiactionConnector.class.getCanonicalName());
+		crnop.doConnection(crnipURI, CoreReleasingNotificationConnector.class.getCanonicalName());
 
 		logMessage(crnop.getClientPortURI() + " connected to " + crnop.getServerPortURI());
 
+		/**
+		 * Connexion du dispatcher au contrôleur d'admission pour l'émission 
+		 * des notifications de libération d'AVM
+		 */
+		
+		ApplicationVMReleasingNotificationOutboundPort avmrnop = (ApplicationVMReleasingNotificationOutboundPort) dispatcher
+				.findPortFromURI(dispatcher.getApplicationVMReleasingNotificationOutboundPortURI());
+		avmrnop.doConnection(avmrnipURI, ApplicationVMReleasingNotificationConnector.class.getCanonicalName());
+		
 		// TODO Mise à jour des informations concernant les DataNodes (connexion
 		// des ComponentDataNode)
 
@@ -1589,32 +1762,42 @@ public class AdmissionController
 
 		ComponentDataNode requestGeneratorDataNode = admissionControllerDataNode
 				.findByOwnedPort(requestGeneratorRequestSubmissionOutboundPortURI);
-		ComponentDataNode dispatcherDataNode = admissionControllerDataNode.findByURI(dispatcher.getURI());
+		ComponentDataNode dispatcherDataNode = admissionControllerDataNode
+				.findByURI(dispatcher.getURI());
 		ComponentDataNode avmDataNode = admissionControllerDataNode
 				.findByOwnedPort(applicationVMCoreReleasingNotificationOutboundPortURI);
 
-		dispatcherDataNode.addPort(dispatcher.getRequestNotificationInboundPortURI())
+		dispatcherDataNode
+		.addPort(dispatcherManagementInboundPortURI)
+		.addPort(dispatcher.getRequestNotificationInboundPortURIs().get(0))
 		.addPort(dispatcher.getRequestNotificationOutboundPortURI())
 		.addPort(dispatcher.getRequestSubmissionInboundPortURI())
-		.addPort(dispatcher.getRequestSubmissionOutboundPortURI());
+		.addPort(dispatcher.getRequestSubmissionOutboundPortURIs().get(0))
+		.addPort(dispatcher.getApplicationVMReleasingNotificationOutboundPortURI());
 
-		admissionControllerDataNode.addPort(cropURI).addPort(crnipURI);
+		admissionControllerDataNode
+		.addPort(cropURI)
+		.addPort(crnipURI)
+		.addPort(dmopURI)
+		.addPort(avmrnipURI);
 
-		requestGeneratorDataNode.trustedConnect(requestGeneratorRequestSubmissionOutboundPortURI,
-				dispatcher.getRequestSubmissionInboundPortURI());
+		requestGeneratorDataNode
+		.trustedConnect(requestGeneratorRequestSubmissionOutboundPortURI, dispatcher.getRequestSubmissionInboundPortURI());
 
-		dispatcherDataNode.trustedConnect(dispatcher.getRequestNotificationOutboundPortURI(),
-				requestGeneratorRequestNotificationInboundPortURI);
-		dispatcherDataNode.trustedConnect(dispatcher.getRequestSubmissionOutboundPortURI(),
-				applicationVMRequestSubmissionInboundPortURI);
+		dispatcherDataNode
+		.trustedConnect(dispatcher.getRequestNotificationOutboundPortURI(),	requestGeneratorRequestNotificationInboundPortURI)
+		.trustedConnect(dispatcher.getRequestSubmissionOutboundPortURIs().get(0), applicationVMRequestSubmissionInboundPortURI)
+		.trustedConnect(dispatcher.getApplicationVMReleasingNotificationOutboundPortURI(), avmrnipURI);
 
-		avmDataNode.trustedConnect(applicationVMRequestNotificationOutboundPortURI,
-				dispatcher.getRequestNotificationInboundPortURI());
-		avmDataNode.trustedConnect(applicationVMCoreReleasingNotificationOutboundPortURI, crnipURI);
+		avmDataNode
+		.trustedConnect(applicationVMRequestNotificationOutboundPortURI, dispatcher.getRequestNotificationInboundPortURIs().get(0))
+		.trustedConnect(applicationVMCoreReleasingNotificationOutboundPortURI, crnipURI);
 
-		admissionControllerDataNode.trustedConnect(cropURI, applicationVMCoreReleasingInboundPortURI);
-		admissionControllerDataNode.trustedConnect(rgmopURI, requestGeneratorManagementInboundPortURI);
-		admissionControllerDataNode.trustedConnect(avmmopURI, applicationVMManagementInboundPortURI);
+		admissionControllerDataNode
+		.trustedConnect(dmopURI, dispatcherManagementInboundPortURI)
+		.trustedConnect(cropURI, applicationVMCoreReleasingInboundPortURI)
+		.trustedConnect(rgmopURI, requestGeneratorManagementInboundPortURI)
+		.trustedConnect(avmmopURI, applicationVMManagementInboundPortURI);
 
 		/**
 		 * Retour de l'URI du port de management du RequestGenerator
