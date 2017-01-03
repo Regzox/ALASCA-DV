@@ -179,6 +179,7 @@ public class Dispatcher extends AbstractComponent
 		rsop.doConnection(rsipURI, RequestSubmissionConnector.class.getCanonicalName());
 	
 		rsopURIs.add(rsopURI);
+		System.out.println(rsopURI);
 		
 		String rnipURI = generateURI(Tag.REQUEST_NOTIFICATION_INBOUND_PORT);
 		RequestNotificationInboundPort rnip = new RequestNotificationInboundPort(rnipURI, this);

@@ -13,6 +13,9 @@ import fr.upmc.datacenterclient.requestgenerator.ports.RequestGeneratorManagemen
 
 public class AdmissionControllerTest extends AbstractCVM {
 
+	public static long emissionDelay = 40 * 1000L;
+	public static long simulationDelay = 60 * 1000L;
+	
 	protected final String admissionControllerURI = "admissionController";
 	protected final String admissionControllerManagementInboundPortURI = "admissionController-mip";
 	protected final String admissionControllerManagementOutboundPortURI = "admissionController-mop";
@@ -93,7 +96,7 @@ public class AdmissionControllerTest extends AbstractCVM {
 		String requestGeneratorManagementOutboundPortURI = acmop.submitApplication();
 		RequestGeneratorManagementOutboundPort rgmop = (RequestGeneratorManagementOutboundPort) admissionController.findPortFromURI(requestGeneratorManagementOutboundPortURI);
 		rgmop.startGeneration();
-		Thread.sleep(10000L);
+		Thread.sleep(emissionDelay);
 		rgmop.stopGeneration();
 
 		System.out.println(rgmop.getServerPortURI() + " ENDED");
@@ -156,7 +159,7 @@ public class AdmissionControllerTest extends AbstractCVM {
 //				}
 //			}).start() ;
 
-			Thread.sleep(30000L);
+			Thread.sleep(simulationDelay);
 
 			System.out.println("Stopping ... ");
 			target.shutdown();

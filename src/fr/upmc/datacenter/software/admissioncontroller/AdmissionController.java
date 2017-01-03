@@ -48,6 +48,7 @@ import fr.upmc.datacenter.software.applicationvm.extended.ApplicationVM;
 import fr.upmc.datacenter.software.applicationvm.extended.connectors.ApplicationVMCoreReleasingConnector;
 import fr.upmc.datacenter.software.applicationvm.extended.interfaces.ApplicationVMCoreReleasingI;
 import fr.upmc.datacenter.software.applicationvm.extended.ports.ApplicationVMCoreReleasingOutboundPort;
+import fr.upmc.datacenter.software.applicationvm.interfaces.ApplicationVMManagementI;
 import fr.upmc.datacenter.software.applicationvm.ports.ApplicationVMManagementOutboundPort;
 import fr.upmc.datacenter.software.connectors.ApplicationVMReleasingNotificationConnector;
 import fr.upmc.datacenter.software.connectors.CoreReleasingNotificationConnector;
@@ -425,11 +426,22 @@ public class AdmissionController
 
 		System.out.println("\tComputerAvailableCores[" + computerURI + "] : " + computerAvailableCores(computerURI));
 		
-		allocateCores(computerURI, applicationVMURI, 15);
+		//allocateCores(computerURI, applicationVMURI, 1);
 		
+		increaseProcessorsFrenquencies(computerURI);
+		increaseProcessorsFrenquencies(computerURI);
+		increaseProcessorsFrenquencies(computerURI);
+		increaseProcessorsFrenquencies(computerURI);
+		
+		increaseAVMs(dispatcherURI);
+		increaseAVMs(dispatcherURI);
+		increaseAVMs(dispatcherURI);
+		increaseAVMs(dispatcherURI);
 		decreaseAVMs(dispatcherURI);
-		//System.exit(0);
-	
+		decreaseAVMs(dispatcherURI);
+		decreaseAVMs(dispatcherURI);
+		decreaseAVMs(dispatcherURI);
+			
 		System.out.println("\tComputerAvailableCores[" + computerURI + "] : " + computerAvailableCores(computerURI));
 
 		return rgmop;
@@ -1219,28 +1231,179 @@ public class AdmissionController
 		  * d'analyse/décision pour induire une action.  
 		  */
 		 
-		 final String avmURI = generateURI(Tag.APPLICATION_VM);
-		 final String avmmipURI = generateURI(Tag.APPLICATION_VM_MANAGEMENT_INBOUND_PORT);
-		 final String rsipURI = generateURI(Tag.REQUEST_SUBMISSION_INBOUND_PORT);
-		 final String rnopURI = generateURI(Tag.REQUEST_NOTIFICATION_OUTBOUND_PORT);
-		 final String cripURI = generateURI(Tag.APPLICATION_VM_CORE_RELEASING_INBOUND_PORT);
-		 final String crnopURI = generateURI(Tag.APPLICATION_VM_CORE_RELEASING_NOTIFICATION_OUTBOUND_PORT);
+		 /**
+		  * Cas où il y a une AVM en attente, cherche et connexion de cette AVM au dispatcher
+		  */
 		 
-		 ApplicationVM avm = new ApplicationVM(
-				 avmURI, 
-				 avmmipURI, 
-				 rsipURI, 
-				 rnopURI, 
-				 cripURI, 
-				 crnopURI);
-		 AbstractCVM.theCVM.addDeployedComponent(avm);
-		 
-		 applicationVMMap.put(avmURI, avm);
+		 if (unusedAVMs.size() > 0) {
+			 ApplicationVM avm = unusedAVMs.get(0);
+			 String avmURI = null;
 			 
-		 Dispatcher dsp = dispatcherMap.get(dispatcherURI);
+			 for (String uri : applicationVMMap.keySet()) {
+				 if (applicationVMMap.get(uri) == avm) {
+					 avmURI = uri;
+					 break;
+				 }
+			 }
+			 
+			 if (avmURI == null)
+				 throw new Exception("No AVM referenced for the last unused one");
+			 
+			 ComponentDataNode avmdn = admissionControllerDataNode.findByURI(avmURI);
+			 
+			 dspdn
+			 	.addChild(avmdn);
+			 
+			 String rsipURI = avmdn.getPortLike(Tag.REQUEST_SUBMISSION_INBOUND_PORT);
+			 String rnopURI = avmdn.getPortLike(Tag.REQUEST_NOTIFICATION_OUTBOUND_PORT);
+			 
+			 Dispatcher dsp = dispatcherMap.get(dispatcherURI);
+			 List<String> rsopURIsBefore = new ArrayList<>(dsp.getRequestSubmissionOutboundPortURIs());
+			 String rnipURI = dmop.connectToApplicationVM(rsipURI);
+			 RequestNotificationOutboundPort rnop = (RequestNotificationOutboundPort) avm.findPortFromURI(rnopURI);
+			 rnop.doConnection(rnipURI, RequestNotificationConnector.class.getCanonicalName());
+			 List<String> rsopURIsAfter = new ArrayList<>(dsp.getRequestSubmissionOutboundPortURIs());
+			 rsopURIsAfter.removeAll(rsopURIsBefore);
+			 if (rsopURIsAfter.size() != 1)
+				 throw new Exception("Dispatcher some connections increase the rsops counts more than expected (1) : " + rsopURIsAfter.size());
+			 String rsopURI = rsopURIsAfter.get(0);
+			 
+			 dspdn
+			 	.addPort(rnipURI)
+			 	.trustedConnect(rsopURI, rsipURI);
+			 
+			 avmdn
+			 	.trustedConnect(rnopURI, rnipURI);
+			 
+		 } 
 		 
+		 /**
+		  * Si aucune AVM n'est disponible dans la file d'attente, on en créé une que
+		  * l'on connectera au dispatcher
+		  */
 		 
-		 dmop.connectToApplicationVM(rsipURI);
+		 else {
+			 final String avmURI = generateURI(Tag.APPLICATION_VM);
+			 final String avmmipURI = generateURI(Tag.APPLICATION_VM_MANAGEMENT_INBOUND_PORT);
+			 final String rsipURI = generateURI(Tag.REQUEST_SUBMISSION_INBOUND_PORT);
+			 final String rnopURI = generateURI(Tag.REQUEST_NOTIFICATION_OUTBOUND_PORT);
+			 final String avmcripURI = generateURI(Tag.APPLICATION_VM_CORE_RELEASING_INBOUND_PORT);
+			 final String crnopURI = generateURI(Tag.APPLICATION_VM_CORE_RELEASING_NOTIFICATION_OUTBOUND_PORT);
+			 			 
+			 ApplicationVM avm = new ApplicationVM(
+					 avmURI, 
+					 avmmipURI, 
+					 rsipURI, 
+					 rnopURI, 
+					 avmcripURI, 
+					 crnopURI);
+			 AbstractCVM.theCVM.addDeployedComponent(avm);
+			 applicationVMMap.put(avmURI, avm);
+			 
+			 ComponentDataNode avmdn = new ComponentDataNode(avmURI);
+			 
+			 avmdn
+			 	.addPort(avmmipURI)
+			 	.addPort(rsipURI)
+			 	.addPort(rnopURI)
+			 	.addPort(avmcripURI)
+			 	.addPort(crnopURI);
+			 
+			 dspdn	// Important de rendre connexe le graphe pour les trustedConnect()
+			 	.addChild(avmdn);
+			 
+			 /**
+			  * Création et connexion du port de soumission des demandes de libérations de coeurs
+			  */
+			 
+			 if (!requiredInterfaces.contains(ApplicationVMCoreReleasingI.class))
+				 requiredInterfaces.add(ApplicationVMCoreReleasingI.class);
+			 
+			 final String avmcropURI = generateURI(Tag.APPLICATION_VM_CORE_RELEASING_OUTBOUND_PORT);
+			 
+			 ApplicationVMCoreReleasingOutboundPort avmcrop = new ApplicationVMCoreReleasingOutboundPort(avmcropURI, ApplicationVMCoreReleasingI.class, this);
+			 addPort(avmcrop);
+			 avmcrop.publishPort();
+			 avmcrop.doConnection(avmcripURI, ApplicationVMCoreReleasingConnector.class.getCanonicalName());
+			 
+			 admissionControllerDataNode
+			 	.trustedConnect(avmcropURI, avmcripURI);
+			 
+			 /**
+			  * Création et connexion du port de notification des libérations de coeurs
+			  */
+			 
+			 if (!offeredInterfaces.contains(CoreReleasingNotificationI.class))
+				 offeredInterfaces.add(CoreReleasingNotificationI.class);
+			 
+			 final String crnipURI = generateURI(Tag.APPLICATION_VM_CORE_RELEASING_NOTIFICATION_INBOUND_PORT);
+			 
+			 CoreReleasingNotificationInboundPort crnip = new CoreReleasingNotificationInboundPort(crnipURI, CoreReleasingNotificationI.class, this);
+			 addPort(crnip);
+			 crnip.publishPort();
+			 
+			 CoreReleasingNotificationOutboundPort crnop = (CoreReleasingNotificationOutboundPort) avm.findPortFromURI(crnopURI);
+			 crnop.doConnection(crnipURI, CoreReleasingNotificationConnector.class.getCanonicalName());
+			 
+			 admissionControllerDataNode
+			 	.trustedConnect(crnipURI, crnopURI);
+			 
+			 /**
+			  * Création et connexion du port de gestion de l'AVM (Allocation des coeurs)
+			  */
+			 
+			 if (!requiredInterfaces.contains(ApplicationVMManagementI.class))
+				 requiredInterfaces.add(ApplicationVMManagementI.class);
+			 
+			 final String avmmopURI = generateURI(Tag.APPLICATION_VM_MANAGEMENT_OUTBOUND_PORT);
+			 
+			 ApplicationVMManagementOutboundPort avmmop = new ApplicationVMManagementOutboundPort(avmmopURI, this);
+			 addPort(avmmop);
+			 avmmop.publishPort();
+			 avmmop.doConnection(avmmipURI, ApplicationVMManagementConnector.class.getCanonicalName());
+			 
+			 admissionControllerDataNode
+			 	.trustedConnect(avmmopURI, avmmipURI);
+			 
+			 /**
+			  * Connexion de l'AVM au Dispatcher
+			  */
+			 
+			 Dispatcher dsp = dispatcherMap.get(dispatcherURI);
+			 List<String> rsopURIsBefore = new ArrayList<>(dsp.getRequestSubmissionOutboundPortURIs());
+			 System.out.println("AC" + rsopURIsBefore);
+			 String rnipURI = dmop.connectToApplicationVM(rsipURI);
+			 RequestNotificationOutboundPort rnop = (RequestNotificationOutboundPort) avm.findPortFromURI(rnopURI);
+			 rnop.doConnection(rnipURI, RequestNotificationConnector.class.getCanonicalName());
+			 List<String> rsopURIsAfter = new ArrayList<>(dsp.getRequestSubmissionOutboundPortURIs());
+			 
+			 System.out.println("AC" + rsopURIsBefore);
+			 System.out.println("AC" + rsopURIsAfter);
+			 
+			 rsopURIsAfter.removeAll(rsopURIsBefore);
+			 if (rsopURIsAfter.size() != 1)
+				 throw new Exception("Dispatcher some connections increase the rsops counts more than expected (1) : " + rsopURIsAfter.size());
+			 String rsopURI = rsopURIsAfter.get(0);
+			 
+			 dspdn
+			 	.addPort(rnipURI)
+			 	.trustedConnect(rsopURI, rsipURI);
+			 
+			 avmdn
+			 	.trustedConnect(rnopURI, rnipURI);
+			 
+			 /**
+			  * Allocation d'un coeur pour l'AVM
+			  */
+			 
+			 String computerURI = findAvailableComputerForApplicationVMAllocation();
+			 
+			 if (computerURI == null)
+				 throw new Exception("No available core on datacenter");
+			 
+			 allocateCores(computerURI, avmURI, 1);
+		 }
+		
 	 }
 	
 	 @Override
@@ -1315,11 +1478,13 @@ public class AdmissionController
 		rnip.destroyPort();
 		
 		dspdn
-		.disconnect(rsopURI)
-		.disconnect(rnipURI)
-		.removeChild(avmdn);	
+			.disconnect(rsopURI)
+			.disconnect(rnipURI)
+			.removeChild(avmdn);	
 		
 		System.out.println(dspdn);
+		
+		unusedAVMs.add(avm);
 		
 		logMessage("AVM RELEASING SUCCESSFUL FOR " + dispatcherURI);
 	}
