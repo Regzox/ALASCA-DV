@@ -6,12 +6,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Vector;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import fr.upmc.components.AbstractComponent;
+import fr.upmc.components.ComponentI;
+import fr.upmc.datacenter.interfaces.ControlledDataOfferedI;
+import fr.upmc.datacenter.interfaces.PushModeControllerI;
 import fr.upmc.datacenter.software.connectors.RequestNotificationConnector;
 import fr.upmc.datacenter.software.connectors.RequestSubmissionConnector;
 import fr.upmc.datacenter.software.dispatcher.interfaces.DispatcherI;
 import fr.upmc.datacenter.software.dispatcher.interfaces.DispatcherManagementI;
+import fr.upmc.datacenter.software.dispatcher.ports.DispatcherDynamicStateDataInboundPort;
 import fr.upmc.datacenter.software.dispatcher.ports.DispatcherManagementInboundPort;
 import fr.upmc.datacenter.software.dispatcher.statistics.ExponentialAverage;
 import fr.upmc.datacenter.software.dispatcher.time.Chronometer;
@@ -35,13 +41,16 @@ public class Dispatcher extends AbstractComponent
 	DispatcherI,
 	DispatcherManagementI,
 	RequestSubmissionHandlerI,
-	RequestNotificationHandlerI		
+	RequestNotificationHandlerI,
+	PushModeControllerI
 {	
 	public static boolean DYNAMIC_STATE_DATA_DISPLAY = false;
 		
 	protected Map<String, List<String>> pendings = new HashMap<>();
 	protected Map<String, Integer> performed = new HashMap<>();
 	protected Vector<String> terminating = new Vector<>();
+	
+	protected ScheduledFuture<?> pushingTask = null;
 	
 	/**
 	 * Système de moyennage par calcul d'une moyenne exponentielle de coefficient alpha.
@@ -56,11 +65,12 @@ public class Dispatcher extends AbstractComponent
 	
 	protected String uri;		
 	
-	protected String rsipURI, rnopURI, avmrnopURI;
+	protected String rsipURI, rnopURI, avmrnopURI, ddsdipURI;
 	protected List<String> rnipURIs, rsopURIs;
 	
 	protected DispatcherManagementInboundPort dmip;
 	protected ApplicationVMReleasingNotificationOutboundPort avmrnop;
+	protected DispatcherDynamicStateDataInboundPort ddsdip;
 	
 	/**
 	 * Dispatcher constructor takes an uri his name,
@@ -76,7 +86,8 @@ public class Dispatcher extends AbstractComponent
 	public Dispatcher(	
 			String uri,
 			String dispatcherManagementInboundPort,
-			String applicationVMReleasingNotificationOutboundPort
+			String applicationVMReleasingNotificationOutboundPort,
+			String dispatcherDynamicStateDataInboundPort
 			)
 					throws Exception 
 	{
@@ -95,6 +106,12 @@ public class Dispatcher extends AbstractComponent
 		avmrnop = new ApplicationVMReleasingNotificationOutboundPort(avmrnopURI, ApplicationVMReleasingNotificationI.class, this);
 		addPort(avmrnop);
 		avmrnop.publishPort();
+		
+		addOfferedInterface(ControlledDataOfferedI.ControlledPullI.class);
+		ddsdipURI = dispatcherDynamicStateDataInboundPort;
+		ddsdip = new DispatcherDynamicStateDataInboundPort(ddsdipURI, this);
+		addPort(ddsdip);
+		ddsdip.publishPort();
 	}
 	
 	@Override
@@ -413,5 +430,88 @@ public class Dispatcher extends AbstractComponent
 	public String getApplicationVMReleasingNotificationOutboundPortURI() {
 		return avmrnopURI;
 	}
+
+	@Override
+	public void startUnlimitedPushing(int interval) throws Exception {
+			
+		final Dispatcher dsp = this;
+		pushingTask = this.scheduleTaskAtFixedRate(
+				new ComponentI.ComponentTask() {
+					@Override
+					public void run() {
+						try {
+							dsp.sendDynamicState() ;
+						} catch (Exception e) {
+							throw new RuntimeException(e) ;
+						}
+					}
+				}, 
+				interval,
+				interval,
+				TimeUnit.MILLISECONDS);
+		
+	}
+
+	@Override
+	public void startLimitedPushing(int interval, int n) throws Exception {
+		assert	n > 0 ;
+
+		final Dispatcher dsp = this ;
+		this.pushingTask =
+			this.scheduleTask(
+					new ComponentI.ComponentTask() {
+						@Override
+						public void run() {
+							try {
+								dsp.sendDynamicState(interval, n) ;
+							} catch (Exception e) {
+								throw new RuntimeException(e) ;
+							}
+						}
+					}, interval, TimeUnit.MILLISECONDS) ;
+	}
+
+	@Override
+	public void stopPushing() throws Exception {
+		if (this.pushingTask != null &&
+				!(this.pushingTask.isCancelled() ||
+									this.pushingTask.isDone())) {
+			this.pushingTask.cancel(false) ;
+		}
+	}
+	
+	public DispatcherDynamicState getDynamicState() {
+		return new DispatcherDynamicState(uri, exponentialAverages, pendings, performed);
+	}
+	
+	public void sendDynamicState() throws Exception {
+		if (this.ddsdip.connected())
+			ddsdip.send(getDynamicState());
+	}
+	
+	public void sendDynamicState(
+			final int interval,
+			int numberOfRemainingPushes) throws Exception
+	{
+		this.sendDynamicState() ;
+		final int fNumberOfRemainingPushes = numberOfRemainingPushes - 1 ;
+		if (fNumberOfRemainingPushes > 0) {
+			final Dispatcher dsp = this ;
+			this.pushingTask =
+					this.scheduleTask(
+							new ComponentI.ComponentTask() {
+								@Override
+								public void run() {
+									try {
+										dsp.sendDynamicState(
+												interval,
+												fNumberOfRemainingPushes) ;
+									} catch (Exception e) {
+										throw new RuntimeException(e) ;
+									}
+								}
+							}, interval, TimeUnit.MILLISECONDS) ;
+			}
+		}
 	
 }

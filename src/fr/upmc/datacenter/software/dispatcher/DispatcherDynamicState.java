@@ -1,10 +1,11 @@
 package fr.upmc.datacenter.software.dispatcher;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import fr.upmc.datacenter.software.dispatcher.interfaces.DispatcherDynamicStateI;
-import fr.upmc.datacenter.software.dispatcher.statistics.interfaces.ExponentialAverageI;
+import fr.upmc.datacenter.software.dispatcher.statistics.ExponentialAverage;
 
 public class DispatcherDynamicState 
 	implements 
@@ -16,20 +17,20 @@ public class DispatcherDynamicState
 	protected String dispatcherURI;
 	protected long timestamp;
 	protected String timestamperIP;
-	protected Map<String, ExponentialAverageI> exponentialAverages;
-	protected Map<String, Integer> pendingRequests;
+	protected Map<String, ExponentialAverage> exponentialAverages;
+	protected Map<String, List<String>> pendingRequests;
 	protected Map<String, Integer> performedRequests;
 	
 	public DispatcherDynamicState(
 			String dispatcherURI,
-			Map<String, ExponentialAverageI> exponentialAverages,
-			Map<String, Integer> pendingsRequests,
+			Map<String, ExponentialAverage> exponentialAverages,
+			Map<String, List<String>> pendingsRequests,
 			Map<String, Integer> performedRequests) 
 	{
-		super();
-		this.exponentialAverages = new HashMap<String, ExponentialAverageI>(exponentialAverages);
-		this.pendingRequests = pendingsRequests;
-		this.performedRequests = performedRequests;
+		this.dispatcherURI = dispatcherURI;
+		this.exponentialAverages = new HashMap<>(exponentialAverages);
+		this.pendingRequests = new HashMap<>(pendingsRequests);
+		this.performedRequests = new HashMap<>(performedRequests);
 	}
 	
 	@Override
@@ -43,12 +44,17 @@ public class DispatcherDynamicState
 	}
 
 	@Override
-	public Map<String, ExponentialAverageI> getExponentialAverages() {
+	public String getDispatcherURI() {
+		return dispatcherURI;
+	}
+	
+	@Override
+	public Map<String, ExponentialAverage> getExponentialAverages() {
 		return exponentialAverages;
 	}
 
 	@Override
-	public Map<String, Integer> getPendingRequests() {
+	public Map<String, List<String>> getPendingRequests() {
 		return pendingRequests;
 	}
 

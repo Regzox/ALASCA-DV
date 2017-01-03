@@ -56,8 +56,13 @@ import fr.upmc.datacenter.software.connectors.RequestNotificationConnector;
 import fr.upmc.datacenter.software.connectors.RequestSubmissionConnector;
 import fr.upmc.datacenter.software.dispatcher.Dispatcher;
 import fr.upmc.datacenter.software.dispatcher.connectors.DispatcherManagementConnector;
+import fr.upmc.datacenter.software.dispatcher.interfaces.DispatcherDynamicStateDataConsumerI;
+import fr.upmc.datacenter.software.dispatcher.interfaces.DispatcherDynamicStateI;
 import fr.upmc.datacenter.software.dispatcher.interfaces.DispatcherManagementI;
+import fr.upmc.datacenter.software.dispatcher.ports.DispatcherDynamicStateDataOutboundPort;
 import fr.upmc.datacenter.software.dispatcher.ports.DispatcherManagementOutboundPort;
+import fr.upmc.datacenter.software.dispatcher.statistics.ExponentialAverage;
+import fr.upmc.datacenter.software.dispatcher.time.Duration;
 import fr.upmc.datacenter.software.enumerations.Tag;
 import fr.upmc.datacenter.software.interfaces.ApplicationVMReleasingNotificationHandlerI;
 import fr.upmc.datacenter.software.interfaces.ApplicationVMReleasingNotificationI;
@@ -100,13 +105,15 @@ public class AdmissionController
 		AdmissionControllerManagementI, 
 		ComputerStateDataConsumerI, 
 		CoreReleasingNotificationHandlerI,
-		ApplicationVMReleasingNotificationHandlerI
+		ApplicationVMReleasingNotificationHandlerI,
+		DispatcherDynamicStateDataConsumerI
 {
 	public static boolean LOGGING_ALL = false;
 	public static boolean LOGGING_REQUEST_GENERATOR = false;
 	public static boolean LOGGING_APPLICATION_VM = false;
 	public static boolean LOGGING_DISPATCHER = false;
-
+	public static int pushingDelay = 1000;
+	
 	protected String uri;
 	protected Map<String, ComputerStaticStateI> computersStaticStates;
 	protected Map<String, ComputerDynamicStateI> computersDynamicStates;
@@ -117,6 +124,61 @@ public class AdmissionController
 	protected Map<String, RequestGenerator> requestGeneratorMap;
 	protected List<ApplicationVM> unusedAVMs;
 
+	protected Map<String, DispatcherDynamicStateI> dispatcherDynamicStateIMap;
+	
+	protected Thread control = new Thread(() -> { // TODO Implementation d'un contrôle possible ... 
+		
+		long delay = 5 * 1000L;
+		
+		while (true) {
+			
+			// DEBUT DE CONTROLE
+			
+			/**
+			 * Recherche des AVMs ayant pour temps moyen de service exponentiel de 7000 ms
+			 * et allocation d'un coeur de plus.
+			 */			
+			
+			for (DispatcherDynamicStateI dds : dispatcherDynamicStateIMap.values()) {
+				for (String avmrsopURI : dds.getExponentialAverages().keySet()) {					
+					ExponentialAverage ea = dds.getExponentialAverages().get(avmrsopURI);
+					Duration duration = ea.getValue();
+					
+					System.out.println("avmrsopURI : " + avmrsopURI);
+					
+					if (duration.getMilliseconds() > 3000) {
+						ComponentDataNode avmnd = admissionControllerDataNode.findByConnectedPort(avmrsopURI);
+						ComponentDataNode cptnd = null;
+						
+						for (ComponentDataNode node : avmnd.parents) {
+							node.uri.contains(Tag.COMPUTER.toString());
+							cptnd = node;
+							break;
+						}
+						
+						try {
+							allocateCores(cptnd.uri, avmnd.uri, 1);
+						} catch (Exception e) {
+							e.printStackTrace();
+							//System.out.println(admissionControllerDataNode.graphToString());
+							System.out.println(cptnd.uri);
+							System.out.println(avmnd.uri);
+							System.exit(0);
+						}
+					}
+				}
+			}
+				
+			// FIN DE CONTROLE
+			
+			try {
+				Thread.sleep(delay);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	});
+	
 	/**
 	 * Construction d'un {@link AdmissionController} ayant pour nom <em>uri</em>
 	 * et disposant d'un port de contrôle offert
@@ -137,6 +199,7 @@ public class AdmissionController
 		applicationVMMap = new HashMap<>();
 		requestGeneratorMap = new HashMap<>();
 		unusedAVMs = new Vector<>();
+		dispatcherDynamicStateIMap = new HashMap<>();
 
 		admissionControllerDataNode = new ComponentDataNode(uri);
 		if (!offeredInterfaces.contains(AdmissionControllerManagementI.class))
@@ -322,29 +385,24 @@ public class AdmissionController
 		final String requestGeneratorURI = generateURI(Tag.REQUEST_GENERATOR);
 		double meanInterArrivalTime = 500;
 		long meanNumberOfInstructions = 10000000000L;
-		final String requestGeneratorManagementInboundPortURI = generateURI(
-				Tag.REQUEST_GENERATOR_MANAGEMENT_INBOUND_PORT);
-		final String requestGeneratorRequestSubmissionOutboundPortURI = generateURI(
-				Tag.REQUEST_SUBMISSION_OUTBOUND_PORT);
-		final String requestGeneratorRequestNotificationInboundPortURI = generateURI(
-				Tag.REQUEST_NOTIFICATION_INBOUND_PORT);
+		final String requestGeneratorManagementInboundPortURI = generateURI(Tag.REQUEST_GENERATOR_MANAGEMENT_INBOUND_PORT);
+		final String requestGeneratorRequestSubmissionOutboundPortURI = generateURI(Tag.REQUEST_SUBMISSION_OUTBOUND_PORT);
+		final String requestGeneratorRequestNotificationInboundPortURI = generateURI(Tag.REQUEST_NOTIFICATION_INBOUND_PORT);
 
 		RequestGenerator rgn = null;
 
 		final String applicationVMURI = generateURI(Tag.APPLICATION_VM);
 		final String applicationVMManagementInboundPortURI = generateURI(Tag.APPLICATION_VM_MANAGEMENT_INBOUND_PORT);
 		final String applicationVMRequestSubmissionInboundPortURI = generateURI(Tag.REQUEST_SUBMISSION_INBOUND_PORT);
-		final String applicationVMRequestNotificationOutboundPortURI = generateURI(
-				Tag.REQUEST_NOTIFICATION_OUTBOUND_PORT);
-		final String applicationVMCoreReleasingInboundPortURI = generateURI(
-				Tag.APPLICATION_VM_CORE_RELEASING_INBOUND_PORT);
-		final String applicationVMCoreReleasingNotificationOutboundPortURI = generateURI(
-				Tag.APPLICATION_VM_CORE_RELEASING_NOTIFICATION_OUTBOUND_PORT);
+		final String applicationVMRequestNotificationOutboundPortURI = generateURI(Tag.REQUEST_NOTIFICATION_OUTBOUND_PORT);
+		final String applicationVMCoreReleasingInboundPortURI = generateURI(Tag.APPLICATION_VM_CORE_RELEASING_INBOUND_PORT);
+		final String applicationVMCoreReleasingNotificationOutboundPortURI = generateURI(Tag.APPLICATION_VM_CORE_RELEASING_NOTIFICATION_OUTBOUND_PORT);
 		ApplicationVM avm = null;
 
 		final String dispatcherURI = generateURI(Tag.DISPATCHER);
 		final String dispatcherManagementInboundPortURI = generateURI(Tag.DISPATCHER_MANAGEMENT_INBOUND_PORT);
 		final String dispatcherApplicationVMReleasingNotificationOutboundPortURI = generateURI(Tag.APPLICATION_VM_RELEASING_NOTIFICATION_OUTBOUND_PORT);
+		final String dispatcherDynamicStateDataInboundPortURI = generateURI(Tag.DISPATCHER_DYNAMIC_STATE_DATA_INBOUND_PORT);
 
 		Dispatcher dsp = null;
 
@@ -366,7 +424,8 @@ public class AdmissionController
 				dsp,
 				dispatcherURI, 
 				dispatcherManagementInboundPortURI,
-				dispatcherApplicationVMReleasingNotificationOutboundPortURI);
+				dispatcherApplicationVMReleasingNotificationOutboundPortURI,
+				dispatcherDynamicStateDataInboundPortURI);
 
 		rgn = (RequestGenerator) components.get(0);
 		avm = (ApplicationVM) components.get(1);
@@ -396,7 +455,8 @@ public class AdmissionController
 				applicationVMCoreReleasingNotificationOutboundPortURI, 
 				dsp, 
 				dispatcherManagementInboundPortURI,
-				dispatcherApplicationVMReleasingNotificationOutboundPortURI);
+				dispatcherApplicationVMReleasingNotificationOutboundPortURI,
+				dispatcherDynamicStateDataInboundPortURI);
 
 		/**
 		 * Si à ce stade aucun coeurs n'est disponible alors nous nous trouvons
@@ -426,27 +486,46 @@ public class AdmissionController
 
 		System.out.println("\tComputerAvailableCores[" + computerURI + "] : " + computerAvailableCores(computerURI));
 		
-		//allocateCores(computerURI, applicationVMURI, 1);
 		
-		increaseProcessorsFrenquencies(computerURI);
-		increaseProcessorsFrenquencies(computerURI);
-		increaseProcessorsFrenquencies(computerURI);
-		increaseProcessorsFrenquencies(computerURI);
 		
-		increaseAVMs(dispatcherURI);
-		increaseAVMs(dispatcherURI);
-		increaseAVMs(dispatcherURI);
-		increaseAVMs(dispatcherURI);
-		decreaseAVMs(dispatcherURI);
-		decreaseAVMs(dispatcherURI);
-		decreaseAVMs(dispatcherURI);
-		decreaseAVMs(dispatcherURI);
-			
+//		allocateCores(computerURI, applicationVMURI, 1);
+		
+//		increaseProcessorsFrenquencies(computerURI);
+//		increaseProcessorsFrenquencies(computerURI);
+//		increaseProcessorsFrenquencies(computerURI);
+//		increaseProcessorsFrenquencies(computerURI);
+		
+		
+//		Thread delayed = new Thread(() -> {
+//			try {
+//				Thread.sleep(3000);
+//				increaseAVMs(dispatcherURI);
+//				increaseAVMs(dispatcherURI);
+//				
+//				Thread.sleep(3000);
+//				decreaseAVMs(dispatcherURI);
+//				
+//				Thread.sleep(3000);
+//				increaseAVMs(dispatcherURI);
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//			}
+//		});
+		
+//		delayed.start();
+		
+//		for (int i = 31; i > 0; i--) {
+//			increaseAVMs(dispatcherURI);
+//		}
+		
+		control.start();
+		
 		System.out.println("\tComputerAvailableCores[" + computerURI + "] : " + computerAvailableCores(computerURI));
 
 		return rgmop;
 	}
 
+	@Deprecated /** NON A JOUR AVEC LES COMPONENTDATANODES **/
 	@Override
 	public void submitApplication(AbstractApplication application, Class<?> submissionInterface) throws Exception {
 		/**
@@ -554,8 +633,13 @@ public class AdmissionController
 		final String dispatcherURI = generateURI(Tag.DISPATCHER);
 		final String dispatcherManagementInboundPortURI = generateURI(Tag.DISPATCHER_MANAGEMENT_INBOUND_PORT);
 		final String dispatcherApplicationVMReleasingNotificationOutboundPortURI = generateURI(Tag.APPLICATION_VM_RELEASING_NOTIFICATION_OUTBOUND_PORT);
+		final String dispatcherDynamicStateDataInboundPortURI = generateURI(Tag.DISPATCHER_DYNAMIC_STATE_DATA_INBOUND_PORT);
 
-		Dispatcher dispatcher = new Dispatcher(dispatcherURI, dispatcherManagementInboundPortURI, dispatcherApplicationVMReleasingNotificationOutboundPortURI);
+		Dispatcher dispatcher = new Dispatcher(
+				dispatcherURI, 
+				dispatcherManagementInboundPortURI, 
+				dispatcherApplicationVMReleasingNotificationOutboundPortURI, 
+				dispatcherDynamicStateDataInboundPortURI);
 		AbstractCVM.theCVM.addDeployedComponent(dispatcher);
 
 		if (LOGGING_ALL | LOGGING_DISPATCHER) {
@@ -1488,6 +1572,18 @@ public class AdmissionController
 		
 		logMessage("AVM RELEASING SUCCESSFUL FOR " + dispatcherURI);
 	}
+	
+	@Override
+	public void acceptDispatcherDynamicStateData(DispatcherDynamicStateI data) {
+		
+		/**
+		 * Tiens uniquement à jour les données dynamiques arrivant des dispatchers.
+		 * Mise en place de l'intervalle dans la méthode connect(...)
+		 */
+		
+		dispatcherDynamicStateIMap.put(data.getDispatcherURI(), data);
+	}
+	
 
 	/**************************************************
 	 * REFACTORING METHODS
@@ -1684,7 +1780,8 @@ public class AdmissionController
 			Dispatcher dsp, 
 			String dispatcherURI,
 			String dispatcherManagementInboundPortURI,
-			String dispatcherApplicationVMReleasingOutboundPortURI) throws Exception {
+			String dispatcherApplicationVMReleasingOutboundPortURI,
+			String dispatcherDynamicStateDataInboundPortURI) throws Exception {
 
 		rgn = new RequestGenerator(requestGeneratorURI, meanInterArrivalTime, meanNumberOfInstructions,
 				requestGeneratorManagementInboundPortURI, requestGeneratorRequestSubmissionOutboundPortURI,
@@ -1706,7 +1803,11 @@ public class AdmissionController
 			avm.toggleTracing();
 		}
 
-		dsp = new Dispatcher(dispatcherURI, dispatcherManagementInboundPortURI, dispatcherApplicationVMReleasingOutboundPortURI);
+		dsp = new Dispatcher(
+				dispatcherURI, 
+				dispatcherManagementInboundPortURI, 
+				dispatcherApplicationVMReleasingOutboundPortURI,
+				dispatcherDynamicStateDataInboundPortURI);
 		AbstractCVM.theCVM.addDeployedComponent(dsp);
 		
 		if (LOGGING_ALL | LOGGING_DISPATCHER) {
@@ -1738,7 +1839,8 @@ public class AdmissionController
 
 		dispatcherDataNode
 		.addPort(dispatcherManagementInboundPortURI)
-		.addPort(dispatcherApplicationVMReleasingOutboundPortURI);
+		.addPort(dispatcherApplicationVMReleasingOutboundPortURI)
+		.addPort(dispatcherDynamicStateDataInboundPortURI);
 
 		applicationVMDataNode
 		.addPort(applicationVMManagementInboundPortURI)
@@ -1781,7 +1883,8 @@ public class AdmissionController
 			String applicationVMRequestNotificationOutboundPortURI, String applicationVMCoreReleasingInboundPortURI,
 			String applicationVMCoreReleasingNotificationOutboundPortURI, Dispatcher dispatcher,
 			String dispatcherManagementInboundPortURI,
-			String dispatcherApplicationVMReleasingNotificationOutboundPortURI) throws Exception {
+			String dispatcherApplicationVMReleasingNotificationOutboundPortURI,
+			String dispatcherDynamicStateDataInboundPortURI) throws Exception {
 		/**
 		 * Création d'un port de contrôle pour la gestion du dispatcher
 		 */
@@ -1866,6 +1969,21 @@ public class AdmissionController
 		addPort(avmrnip);
 		avmrnip.publishPort();
 		
+		/**
+		 * Création du port de réception des données dynamiques depuis le dispatcher
+		 */
+		
+		if (!requiredInterfaces.contains(ControlledPullI.class))
+			requiredInterfaces.add(ControlledPullI.class);
+		
+		final String ddsdopURI = generateURI(Tag.DISPATCHER_DYNAMIC_STATE_DATA_OUTBOUND_PORT);
+		
+		DispatcherDynamicStateDataOutboundPort ddsdop = new DispatcherDynamicStateDataOutboundPort(ddsdopURI, this);
+		addPort(ddsdop);
+		ddsdop.publishPort();
+		ddsdop.doConnection(dispatcherDynamicStateDataInboundPortURI, ControlledDataConnector.class.getCanonicalName());
+		
+		ddsdop.startUnlimitedPushing(pushingDelay); // TODO
 		
 		/****************************************************************************************************/
 
@@ -1944,7 +2062,8 @@ public class AdmissionController
 		.addPort(cropURI)
 		.addPort(crnipURI)
 		.addPort(dmopURI)
-		.addPort(avmrnipURI);
+		.addPort(avmrnipURI)
+		.addPort(ddsdopURI);
 
 		requestGeneratorDataNode
 		.trustedConnect(requestGeneratorRequestSubmissionOutboundPortURI, dispatcher.getRequestSubmissionInboundPortURI());
@@ -1962,7 +2081,8 @@ public class AdmissionController
 		.trustedConnect(dmopURI, dispatcherManagementInboundPortURI)
 		.trustedConnect(cropURI, applicationVMCoreReleasingInboundPortURI)
 		.trustedConnect(rgmopURI, requestGeneratorManagementInboundPortURI)
-		.trustedConnect(avmmopURI, applicationVMManagementInboundPortURI);
+		.trustedConnect(avmmopURI, applicationVMManagementInboundPortURI)
+		.trustedConnect(ddsdopURI, dispatcherDynamicStateDataInboundPortURI);
 
 		/**
 		 * Retour de l'URI du port de management du RequestGenerator

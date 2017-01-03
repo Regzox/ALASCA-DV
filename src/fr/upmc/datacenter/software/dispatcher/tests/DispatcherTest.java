@@ -47,6 +47,8 @@ public class DispatcherTest
 	
 		public static final String dispatcher_RequestSubmissionInboundPortURI = "d-rsip";
 		public static final String dispatcher_RequestNotificationOutboundPortURI = "d-rnop";
+		public static final String dispatcher_ApplicationVMReleasingNotificationOutboundPort = "d-avmrnop";
+		public static final String dispatcher_DispatcherDynamicStateDataInboundPort = "d-ddsdip";
 	
 	public static final String ComputerServicesOutboundPortURI = "c-csop";
 	
@@ -107,7 +109,8 @@ public class DispatcherTest
 		
 		Dispatcher dispatcher = new Dispatcher("dispatcher",
 				dispatcher_ManagementInboundPort, 
-				"applicationVM-releasing-notification-outbound-port");
+				dispatcher_ApplicationVMReleasingNotificationOutboundPort, 
+				dispatcher_DispatcherDynamicStateDataInboundPort);
 //		Dispatcher dispatcher = new Dispatcher();
 //		dispatcher.plugRequestGenerator(
 //				requestGenarator_RequestSubmissionOutboundPortURI,
