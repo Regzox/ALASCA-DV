@@ -1,8 +1,10 @@
 package fr.upmc.datacenter.hardware.computer.extended.interfaces;
 
+import fr.upmc.components.interfaces.OfferedI;
+import fr.upmc.components.interfaces.RequiredI;
 import fr.upmc.datacenter.hardware.computers.Computer.AllocatedCore;
 
-public interface ComputerCoreReleasingI {
+public interface ComputerCoreReleasingI extends OfferedI, RequiredI {
 	
 	/**
 	 * Libère le coeur alloué passé en paramètre

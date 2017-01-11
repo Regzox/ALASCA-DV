@@ -1,5 +1,7 @@
 package fr.upmc.datacenter.software.interfaces;
 
+import fr.upmc.components.interfaces.OfferedI;
+import fr.upmc.components.interfaces.RequiredI;
 import fr.upmc.datacenter.hardware.computers.Computer.AllocatedCore;
 
 /**
@@ -9,7 +11,7 @@ import fr.upmc.datacenter.hardware.computers.Computer.AllocatedCore;
  *
  */
 
-public interface CoreReleasingNotificationI {
+public interface CoreReleasingNotificationI extends RequiredI, OfferedI {
 
 	/**
 	 * Notifie d'une libération de coeur

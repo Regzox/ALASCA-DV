@@ -31,8 +31,8 @@ public class ComponentDataNode {
 	public Set<String> ports;
 	public Map<String, String> connections;
 	
-	public ComponentDataNode(String uri) {
-		this.uri = uri;
+	public ComponentDataNode(Object uri) {
+		this.uri = uri.toString();
 		
 		parents = new HashSet<>();
 		children = new HashSet<>();
@@ -78,11 +78,11 @@ public class ComponentDataNode {
 	 * @return
 	 */
 	
-	public ComponentDataNode findByURI(String uri) {
+	public ComponentDataNode findByURI(Object uri) {
 		ComponentDataNode result = null;
 		
 		for (ComponentDataNode node : gathering())
-			if (node.uri.equals(uri)) {
+			if (node.uri.equals(uri.toString())) {
 				result = node;
 				break;
 			}
@@ -276,11 +276,11 @@ public class ComponentDataNode {
 		return null;
 	}
 	
-	public Set<String> getURIsLike(String substring) {
+	public Set<String> getURIsLike(Object substring) {
 		Set<String> uris = new HashSet<>();
 		
 		for (ComponentDataNode cdn : gathering()) {
-			if (cdn.uri.contains(substring))
+			if (cdn.uri.contains(substring.toString()))
 				uris.add(cdn.uri);
 		}
 		

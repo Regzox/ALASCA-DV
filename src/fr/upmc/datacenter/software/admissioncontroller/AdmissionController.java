@@ -84,6 +84,8 @@ import fr.upmc.datacenterclient.requestgenerator.ports.RequestGeneratorManagemen
 import fr.upmc.external.software.applications.AbstractApplication;
 import fr.upmc.javassist.DynamicConnectorFactory;
 import fr.upmc.nodes.ComponentDataNode;
+import javassist.CtPrimitiveType;
+import javassist.bytecode.stackmap.BasicBlock.Catch;
 
 /**
  * Le {@link AdmissionController} a pour rôle de récupérer les demandes clientes
@@ -128,7 +130,9 @@ public class AdmissionController
 	
 	protected Thread control = new Thread(() -> { // TODO Implementation d'un contrôle possible ... 
 		
-		long delay = 5 * 1000L;
+		long delay = 2 * 1000L;
+		
+		int totalAlloc = 0;
 		
 		while (true) {
 			
@@ -146,24 +150,99 @@ public class AdmissionController
 					
 					System.out.println("avmrsopURI : " + avmrsopURI);
 					
-					if (duration.getMilliseconds() > 3000) {
+					System.out.println(admissionControllerDataNode.graphToString());
+					
+					if (duration == null) {
+						System.out.println("La durée est nulle, la boucle de d'évaluation d'adaptation pour cette AVM s'est exécutée avant même l'échantillonage du premier résultat du dispatcher !");
+						continue;
+					}
+					
+					if (duration.getMilliseconds() > 5000) {
 						ComponentDataNode avmnd = admissionControllerDataNode.findByConnectedPort(avmrsopURI);
-						ComponentDataNode cptnd = null;
+						ComponentDataNode cptdn = null;
 						
 						for (ComponentDataNode node : avmnd.parents) {
-							node.uri.contains(Tag.COMPUTER.toString());
-							cptnd = node;
-							break;
-						}
+							System.out.println(node.uri);
+							if (node.uri.contains(Tag.COMPUTER.toString())) {
+								cptdn = node;
+								break;
+							}
+						}			
 						
 						try {
-							allocateCores(cptnd.uri, avmnd.uri, 1);
+							increaseProcessorsFrenquencies(cptdn.uri);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						
+						System.out.println(">> COMPUTER : " + cptdn.uri);
+						System.out.println(">> AVM : " + avmnd.uri);
+						
+						try {
+							if (duration.getMilliseconds() > 10000) {
+								allocateCores(cptdn.uri, avmnd.uri, 8);
+								totalAlloc += 8;
+							} else if (duration.getMilliseconds() > 7500) {
+								allocateCores(cptdn.uri, avmnd.uri, 4);
+								totalAlloc += 4;
+							} else if (duration.getMilliseconds() > 5000) {
+								allocateCores(cptdn.uri, avmnd.uri, 2);
+								totalAlloc += 2;
+							}
 						} catch (Exception e) {
 							e.printStackTrace();
 							//System.out.println(admissionControllerDataNode.graphToString());
-							System.out.println(cptnd.uri);
-							System.out.println(avmnd.uri);
+							System.out.println(">> COMPUTER : " + cptdn.uri);
+							System.out.println(">> AVM : " + avmnd.uri);
 							System.exit(0);
+						}
+						finally {
+							System.out.println("\t\t\t>>>>>TOTAL ALLOCATED BY LAW : " + totalAlloc);
+						}
+					} else {
+						ComponentDataNode avmnd = admissionControllerDataNode.findByConnectedPort(avmrsopURI);
+						ComponentDataNode cptdn = null;
+						
+						for (ComponentDataNode node : avmnd.parents) {
+							System.out.println(node.uri);
+							if (node.uri.contains(Tag.COMPUTER.toString())) {
+								cptdn = node;
+								break;
+							}
+						}
+						
+						try {
+							decreaseProcessorsFrenquencies(cptdn.uri);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						
+						System.out.println(">> COMPUTER : " + cptdn.uri);
+						System.out.println(">> AVM : " + avmnd.uri);
+						
+						if (totalAlloc < 8)
+							continue;
+						
+						try {
+							if (duration.getMilliseconds() < 2000 && totalAlloc > dds.getPendingRequests().get(avmrsopURI).size()) {
+								releaseCores(cptdn.uri, avmnd.uri, 8);
+								totalAlloc -= 8;
+							} else if (duration.getMilliseconds() < 3000 && totalAlloc > dds.getPendingRequests().get(avmrsopURI).size()) {
+								releaseCores(cptdn.uri, avmnd.uri, 4);
+								totalAlloc -= 4;
+							} else if (duration.getMilliseconds() < 4000 && totalAlloc > dds.getPendingRequests().get(avmrsopURI).size()) {
+								releaseCores(cptdn.uri, avmnd.uri, 2);
+								totalAlloc -= 2;
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
+							//System.out.println(admissionControllerDataNode.graphToString());
+							System.out.println(">> COMPUTER : " + cptdn.uri);
+							System.out.println(">> AVM : " + avmnd.uri);
+							System.exit(0);
+						}
+						finally {
+							System.out.println("\t\t\t>>>>>TOTAL ALLOCATED BY LAW : " + totalAlloc);
 						}
 					}
 				}
@@ -211,6 +290,8 @@ public class AdmissionController
 				this);
 		addPort(acmip);
 		acmip.publishPort();
+		
+		control.start(); //TODO
 	}
 
 	/**
@@ -517,8 +598,8 @@ public class AdmissionController
 //		for (int i = 31; i > 0; i--) {
 //			increaseAVMs(dispatcherURI);
 //		}
+				
 		
-		control.start();
 		
 		System.out.println("\tComputerAvailableCores[" + computerURI + "] : " + computerAvailableCores(computerURI));
 

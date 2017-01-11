@@ -14,6 +14,7 @@ public class Computer
 {
 
 	protected String	ccripURI;
+	protected String 	cpdsdipURI;
 	
 	public Computer(	String computerURI, 
 						Set<Integer> possibleFrequencies, 
@@ -47,6 +48,7 @@ public class Computer
 		ComputerCoreReleasingInboundPort ccrip = new ComputerCoreReleasingInboundPort(computerCoreReleasingInboundPortURI, ComputerCoreReleasingI.class, this);
 		addPort(ccrip);
 		ccrip.publishPort();
+		
 	}
-	
+		
 }

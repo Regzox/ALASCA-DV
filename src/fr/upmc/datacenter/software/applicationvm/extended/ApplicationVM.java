@@ -114,28 +114,18 @@ public class ApplicationVM
 				 * Pop des ports processeurs qui ne sont plus utilisés par l'AVM
 				 */
 				ProcessorServicesOutboundPort psop = processorServicesPorts.remove(allocatedCore.processorURI);
-				ProcessorServicesNotificationInboundPort psnop = processorNotificationInboundPorts.remove(allocatedCore.processorURI);
+				ProcessorServicesNotificationInboundPort psnip = processorNotificationInboundPorts.remove(allocatedCore.processorURI);
 
-				/**
-				 * Dépublication des ports qui ne seront plus utilisés
-				 */
-
-				psop.unpublishPort();
-				psnop.unpublishPort();
-
-				/**
-				 * Suppression des ports de l'AVM
-				 */
-
-				this.removePort(psop);
-				this.removePort(psnop);
-
+				psop.doDisconnection();
+//				psnip.doDisconnection(); <- Impossible de faire ça proprement, nécessite la surcharge de processor, donc de computer ...
+				
 				/**
 				 * Destruction des ports détachés de l'AVM
 				 */
 
 				psop.destroyPort();
-				psnop.destroyPort();
+				psnip.destroyPort();
+			
 			}
 
 			/**
@@ -171,7 +161,7 @@ public class ApplicationVM
 		 * Dans le cas où tous les coeurs sont occupés, il faut alors en choisir un au hasard pour le processus de libération.
 		 * Le relâchement doit être effectué moment de la terminaison de la tâche occupant le coeur.
 		 */
-
+		
 		Random random = new Random(System.nanoTime());
 		Integer index = random.nextInt(allocatedCoresIdleStatus.size());
 		int i = 0;
@@ -200,9 +190,12 @@ public class ApplicationVM
 	@Override
 	public void releaseMaximumCores() throws Exception {
 		Integer allocatedCoreCount = allocatedCoresIdleStatus.size();
-
-		while (allocatedCoreCount > 1)
+		
+		while (allocatedCoreCount > 1) {
 			releaseCore();
+			allocatedCoreCount--;
+		}
+		
 	}
 
 	@Override
