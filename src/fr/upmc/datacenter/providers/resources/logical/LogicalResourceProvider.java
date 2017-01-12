@@ -44,6 +44,15 @@ import fr.upmc.datacenter.software.ports.CoreReleasingNotificationInboundPort;
 import fr.upmc.datacenter.software.ports.CoreReleasingNotificationOutboundPort;
 import fr.upmc.nodes.ComponentDataNode;
 
+/**
+ * <h2> Fournisseur de ressources logiques </h2>
+ * 
+ * <p>
+ * 
+ * @author Daniel RADEAU
+ *
+ */
+
 public class LogicalResourceProvider
 extends		AbstractComponent
 implements	LogicalResourcesProviderManagementI,
@@ -295,17 +304,10 @@ implements	LogicalResourcesProviderManagementI,
 				getAllocatedCores(aavm).addAll(allocatedCoreArrayToList(acsArray));
 				avmmop.allocateCores(acsArray);
 			} catch (ExecutionException e) {
+				e.printStackTrace();
 				if ( !e.getMessage().contains(NoCoreException.class.getCanonicalName()) )
 					throw e;
 				logMessage("IMPOSSIBLE TO ALLOCATE CORES !");
-				/** TODO STRATEGIE ANTI AMV DORMANTES : élimination des de la moitié des AVM en attente -1 <3 **/
-				
-//				Integer waitingCount = waitingAVM.size() / 2;
-//				
-//				for ( int i = 0; i < waitingCount; i++ ) {
-//					AllocatedApplicationVM waavm = waitingAVM.remove(0);
-//					decreaseApplicationVMCores(waavm, -1);
-//				}
 			}
 		}
 	}
@@ -338,11 +340,24 @@ implements	LogicalResourcesProviderManagementI,
 		System.out.println("waiting avm : " + waitingAVM.size());
 		System.out.println("refs avm : " + allocatedAVMs.size());
 		
-		if (waitingAVM.size() > 0)
+		if (waitingAVM.size() > 0) {
 			for ( int i = 0; i < avmCount && !waitingAVM.isEmpty(); i++, preallocated++) {
 				allocAVMs[i] = waitingAVM.remove(0);
 				logMessage("The waiting avm [" + allocAVMs[i].avmURI + "] was selected");
+				logMessage("The selected avm has (" + getAllocatedCores(allocAVMs[i]).size() + ") cores for running tasks");
+				
+				if ( getAllocatedCores(allocAVMs[i]).size() == 0 ) {
+					PhysicalResourcesProviderServicesOutboundPort prpsop = (PhysicalResourcesProviderServicesOutboundPort) findPortFromURI(prpsopURI);
+					AllocatedCore[] acs = prpsop.allocateCores(1);
+					List<AllocatedCore> acsList = new ArrayList<>();
+					acsList.add(acs[0]);
+					setAllocatedCores(allocAVMs[i], allocatedCoreListToArray(acsList));
+					String avmmopURI = logicalResourcesProvider.getPortConnectedTo(allocAVMs[i].avmmipURI);
+					ApplicationVMManagementOutboundPort avmmop = (ApplicationVMManagementOutboundPort) findPortFromURI(avmmopURI);
+					avmmop.allocateCores(acs);
+				}
 			}
+		}
 		
 		for ( int i = preallocated; i < avmCount; i++ ) {
 			AllocatedApplicationVM aavm = createAllocatedApplicationVM();
@@ -372,16 +387,9 @@ implements	LogicalResourcesProviderManagementI,
 					throw e;
 				}
 				
-//				if ( allocatedAVMs.remove(aavm) == null) {
-//					logMessage("Impossible to find the application VM uri in known uris");
-//					throw new Exception("Remove failure");
-//				}
-//				
-//				logMessage("CORELESS : " + logicalResourcesProvider.findByURI(aavm.avmURI).uri);
-				
 				String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 				LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
-				
+								
 				AllocatedApplicationVM[] aavms = lrprop.allocateApplicationVMs(logicalResourcesProvider.uri, avmCount - i);
 				System.out.println("AAVMS GRABED : " + aavms.length);
 				
@@ -516,21 +524,115 @@ implements	LogicalResourcesProviderManagementI,
 	public AllocatedApplicationVM[] allocateApplicationVMs(String requesterUri, Integer avmCount) throws Exception {
 		// TODO Auto-generated method stub
 		
+		System.out.println("###### RQ : " + requesterUri + " count : " + avmCount );
+		
 		if ( logicalResourcesProvider.uri.equals(requesterUri) ) {
-			logMessage("All logical resources providers have been requested. Unfortunately, no AVM allocable");
-			throw new NoApplicationVMException(" No application VM available in the ring network");
+			logMessage("All logical resources providers have been requested. "
+					+ "Unfortunately, (" + avmCount + ") cores for allocated (" + avmCount + ") avms are unavailables");
+			return new AllocatedApplicationVM[0];
 		}
 		
-		try {
-			return allocateApplicationVMs(avmCount);
-		} catch (ExecutionException e) {
-			if (!e.getMessage().contains(NoCoreException.class.getCanonicalName()))
-				throw e;
+		String prpsopURI = logicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_SERVICES_OUTBOUND_PORT);
+		
+		if ( !(prpsopURI != null) )
+			throw new Exception();
+		if ( !(avmCount > 0) )
+			throw new Exception();
+		
+		AllocatedApplicationVM[] allocAVMs = new AllocatedApplicationVM[avmCount];
+		int preallocated = 0;
+		
+		System.out.println("avm count : " + avmCount);
+		System.out.println("waiting avm : " + waitingAVM.size());
+		System.out.println("refs avm : " + allocatedAVMs.size());
+		
+		if (waitingAVM.size() > 0) {
+			for ( int i = 0; i < avmCount && !waitingAVM.isEmpty(); i++, preallocated++) {
+				allocAVMs[i] = waitingAVM.remove(0);
+				logMessage("The waiting avm [" + allocAVMs[i].avmURI + "] was selected");
+				logMessage("The selected avm has (" + getAllocatedCores(allocAVMs[i]).size() + ") cores for running tasks");
+				
+				if ( getAllocatedCores(allocAVMs[i]).size() == 0 ) {
+					PhysicalResourcesProviderServicesOutboundPort prpsop = (PhysicalResourcesProviderServicesOutboundPort) findPortFromURI(prpsopURI);
+					AllocatedCore[] acs = prpsop.allocateCores(1);
+					List<AllocatedCore> acsList = new ArrayList<>();
+					acsList.add(acs[0]);
+					setAllocatedCores(allocAVMs[i], allocatedCoreListToArray(acsList));
+					String avmmopURI = logicalResourcesProvider.getPortConnectedTo(allocAVMs[i].avmmipURI);
+					ApplicationVMManagementOutboundPort avmmop = (ApplicationVMManagementOutboundPort) findPortFromURI(avmmopURI);
+					avmmop.allocateCores(acs);
+				}
+			}
 		}
 		
-		String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
-		LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
-		return lrprop.allocateApplicationVMs(requesterUri, avmCount);
+		for ( int i = preallocated; i < avmCount; i++ ) {
+			AllocatedApplicationVM aavm = createAllocatedApplicationVM();
+			
+			try {
+				
+				PhysicalResourcesProviderServicesOutboundPort prpsop = (PhysicalResourcesProviderServicesOutboundPort) findPortFromURI(prpsopURI);
+				AllocatedCore[] acs = prpsop.allocateCores(1);
+				
+				createApplicationVM(aavm);
+				connectApplicationVM(aavm, getApplicationVMCoreReleasingNotificationOutboundPort(aavm));
+				
+				List<AllocatedCore> acsList = new ArrayList<>();
+				acsList.add(acs[0]);
+				setAllocatedCores(aavm, allocatedCoreListToArray(acsList));
+				
+				String avmmopURI = logicalResourcesProvider.getPortConnectedTo(aavm.avmmipURI);
+				ApplicationVMManagementOutboundPort avmmop = (ApplicationVMManagementOutboundPort) findPortFromURI(avmmopURI);
+				avmmop.allocateCores(acs);
+				allocAVMs[i] = aavm;
+				
+				logMessage( "A new application VM is created with " + acs.length + " cores allocated");
+				
+			} catch (ExecutionException e) {
+				
+				if ( !e.getMessage().contains(NoCoreException.class.getCanonicalName()) ) {
+					throw e;
+				}
+				
+				String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
+				LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
+								
+				AllocatedApplicationVM[] aavms = lrprop.allocateApplicationVMs(requesterUri, avmCount - i);
+				System.out.println("AAVMS GRABED : " + aavms.length);
+				
+				List<AllocatedApplicationVM> provided = allocatedApplicationVMArrayToList(allocAVMs);
+				if (provided.contains(null))
+					System.out.println("NULL DETCTED");
+				List<AllocatedApplicationVM> notProvided = allocatedApplicationVMArrayToList(aavms);		
+				provided.addAll(notProvided);
+				
+				return allocatedApplicationVMListToArray(provided);
+			}
+			
+		}
+
+		return allocAVMs;
+		
+//		List<AllocatedApplicationVM> list = new ArrayList<>();
+//		
+//		try {
+//			AllocatedApplicationVM[] array = allocateApplicationVMs(avmCount);
+//			
+//			System.out.println(avmCount);
+//			Thread.sleep(1000);
+//			
+//			if (array.length == avmCount)
+//				return array;
+//			
+//			list.addAll(allocatedApplicationVMArrayToList(array));
+//		} catch (ExecutionException e) {
+//			if (!e.getMessage().contains(NoCoreException.class.getCanonicalName()))
+//				throw e;
+//			System.out.println("AFTER (catch exception): " + list.size());
+//		}
+//		
+//		String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
+//		LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
+//		return lrprop.allocateApplicationVMs(requesterUri, avmCount);
 		
 	}
 

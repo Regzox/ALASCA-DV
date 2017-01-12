@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
 import fr.upmc.datacenter.providers.resources.annotations.Ring;
 import fr.upmc.datacenter.providers.resources.logical.AllocatedApplicationVM;
@@ -16,6 +19,13 @@ public class LogicalResourcesProviderUnitTest {
 	
 	public static LogicalResourcesProviderCVM lrpCVM;
 	public static List<AllocatedApplicationVM> aavms;
+	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+	   protected void starting(Description description) {
+	      System.out.println("\n\t>>>>>> Starting test: " + description.getMethodName() + " <<<<<<\n");
+	   }
+	};
 	
 	@BeforeClass
 	public static void instanciate() throws Exception {
@@ -30,11 +40,6 @@ public class LogicalResourcesProviderUnitTest {
 		for (AllocatedApplicationVM avm: aavms) {
 			LogicalResourcesProviderUnitTest.aavms.add(avm);
 		}
-	}
-	
-	@Before
-	public void separator() {
-		System.out.println("\n/////////////////////////////////////////////////////////////\n");
 	}
 	
 	@After
@@ -65,11 +70,18 @@ public class LogicalResourcesProviderUnitTest {
 		addToAllocatedApplicationVM(lrpCVM.lrpsop_A.allocateApplicationVMs(32));
 	}
 	
-	//@Test
-	public void allocateApplicationVMExplode() throws Exception {
+	@Test
+	public void allocateApplicationVMExplodeStockCapability() throws Exception {
 		assert lrpCVM.lrpsop_A != null;
 		
 		addToAllocatedApplicationVM(lrpCVM.lrpsop_A.allocateApplicationVMs(65));
+	}
+	
+	@Test
+	public void allocateApplicationVMExplodeAllCapability() throws Exception {
+		assert lrpCVM.lrpsop_A != null;
+		
+		addToAllocatedApplicationVM(lrpCVM.lrpsop_A.allocateApplicationVMs(130));
 	}
 	
 	@Test
@@ -110,7 +122,7 @@ public class LogicalResourcesProviderUnitTest {
 	/// RINGS TESTS
 		
 	@Test @Ring
-	public void allocateApplicationVMExplodeRing() throws Exception {
+	public void allocateApplicationVMExplodeStockCapabilityRing() throws Exception {
 		assert lrpCVM.lrpsop_A != null;
 		
 		addToAllocatedApplicationVM(lrpCVM.lrpsop_A.allocateApplicationVMs(65));

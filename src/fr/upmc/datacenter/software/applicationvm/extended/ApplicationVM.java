@@ -179,7 +179,7 @@ public class ApplicationVM
 	@Override
 	public void releaseCores(int cores) throws Exception {
 
-		if (cores >= allocatedCoresIdleStatus.size())
+		if (cores > allocatedCoresIdleStatus.size())
 			throw new Exception("To many cores wanted for releasing");
 		for (int i = 0; i < cores; i++) {
 			releaseCore();
@@ -191,7 +191,7 @@ public class ApplicationVM
 	public void releaseMaximumCores() throws Exception {
 		Integer allocatedCoreCount = allocatedCoresIdleStatus.size();
 		
-		while (allocatedCoreCount > 1) {
+		while (allocatedCoreCount > 0) {
 			releaseCore();
 			allocatedCoreCount--;
 		}
