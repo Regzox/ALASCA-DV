@@ -3,6 +3,7 @@ package fr.upmc.datacenter.providers.resources.logical.interfaces;
 import fr.upmc.components.interfaces.OfferedI;
 import fr.upmc.components.interfaces.RequiredI;
 import fr.upmc.datacenter.providers.resources.logical.AllocatedApplicationVM;
+import fr.upmc.datacenter.software.controllers.performance.AllocatedDispatcher;
 
 /**
  * Services du fournisseur de resources logiques.
@@ -71,5 +72,25 @@ extends 	RequiredI,
 	 */
 	
 	void releaseApplicationVMs(AllocatedApplicationVM[] avms) throws Exception;
+	
+	/**
+	 * Permet de réalisé la connection du port de sortie de l'avm concernée au port d'entrée du répartiteur concerné.
+	 * 
+	 * @param aavm
+	 * @param adsp
+	 * @throws Exception
+	 */
+	
+	void connectApplicationVM(AllocatedApplicationVM aavm, AllocatedDispatcher adsp) throws Exception;
+	
+	/**
+	 * Permet de réalisé la déconnection de l'avm au répartiteur de requêtes.
+	 * 
+	 * @param aavm
+	 * @param adsp
+	 * @throws Exception
+	 */
+	
+	void disconnectApplicationVM(AllocatedApplicationVM aavm, AllocatedDispatcher adsp) throws Exception;
 	
 }

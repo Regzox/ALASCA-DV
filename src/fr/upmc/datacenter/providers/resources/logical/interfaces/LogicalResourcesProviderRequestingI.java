@@ -4,6 +4,7 @@ import fr.upmc.components.interfaces.OfferedI;
 import fr.upmc.components.interfaces.RequiredI;
 import fr.upmc.datacenter.providers.resources.interfaces.RequestingI;
 import fr.upmc.datacenter.providers.resources.logical.AllocatedApplicationVM;
+import fr.upmc.datacenter.software.controllers.performance.AllocatedDispatcher;
 
 public interface LogicalResourcesProviderRequestingI 
 extends 	RequestingI,
@@ -27,5 +28,10 @@ extends 	RequestingI,
 	
 	
 	void releaseApplicationVMs(String requesterUri, AllocatedApplicationVM[] avms) throws Exception;
+	
+	
+	void connectApplicationVM(String requesterUri, AllocatedApplicationVM aavm, AllocatedDispatcher adsp) throws Exception;
+	
+	void disconnectApplicationVM(String requesterUri, AllocatedApplicationVM aavm, AllocatedDispatcher adsp) throws Exception;
 	
 }

@@ -3,6 +3,7 @@ package fr.upmc.datacenter.providers.resources.logical.connectors;
 import fr.upmc.components.connectors.AbstractConnector;
 import fr.upmc.datacenter.providers.resources.logical.AllocatedApplicationVM;
 import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderRequestingI;
+import fr.upmc.datacenter.software.controllers.performance.AllocatedDispatcher;
 
 public class LogicalResourcesProviderRequestingConnector 
 extends AbstractConnector
@@ -38,7 +39,19 @@ implements LogicalResourcesProviderRequestingI
 	public void releaseApplicationVMs(String requesterUri, AllocatedApplicationVM[] avms) throws Exception {
 		( (LogicalResourcesProviderRequestingI) this.offering ).releaseApplicationVMs(requesterUri, avms);
 	}
+	
+	@Override
+	public void connectApplicationVM(String requesterUri, AllocatedApplicationVM aavm, AllocatedDispatcher adsp)
+			throws Exception {
+		( (LogicalResourcesProviderRequestingI) this.offering ).connectApplicationVM(requesterUri, aavm, adsp);
+	}
 
+	@Override
+	public void disconnectApplicationVM(String requesterUri, AllocatedApplicationVM aavm, AllocatedDispatcher adsp)
+			throws Exception {
+		( (LogicalResourcesProviderRequestingI) this.offering ).disconnectApplicationVM(requesterUri, aavm, adsp);
+	}
+	
 	@Override
 	public boolean isLocal(Object o) throws Exception {
 		return ( (LogicalResourcesProviderRequestingI) this.offering ).isLocal(o);

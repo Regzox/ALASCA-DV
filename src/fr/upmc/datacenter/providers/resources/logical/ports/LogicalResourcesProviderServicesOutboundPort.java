@@ -4,6 +4,7 @@ import fr.upmc.components.ComponentI;
 import fr.upmc.components.ports.AbstractOutboundPort;
 import fr.upmc.datacenter.providers.resources.logical.AllocatedApplicationVM;
 import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderServicesI;
+import fr.upmc.datacenter.software.controllers.performance.AllocatedDispatcher;
 
 public class LogicalResourcesProviderServicesOutboundPort 
 extends AbstractOutboundPort
@@ -50,4 +51,14 @@ implements LogicalResourcesProviderServicesI
 		( (LogicalResourcesProviderServicesI) this.connector ).releaseApplicationVMs(avms);		
 	}
 	
+	@Override
+	public void connectApplicationVM(AllocatedApplicationVM aavm, AllocatedDispatcher adsp) throws Exception {
+		( (LogicalResourcesProviderServicesI) this.connector ).connectApplicationVM(aavm, adsp);		
+	}
+	
+	@Override
+	public void disconnectApplicationVM(AllocatedApplicationVM aavm, AllocatedDispatcher adsp)
+			throws Exception {
+		( (LogicalResourcesProviderServicesI) this.connector ).disconnectApplicationVM(aavm, adsp);
+	}
 }

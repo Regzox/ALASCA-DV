@@ -6,6 +6,7 @@ import fr.upmc.components.ports.AbstractInboundPort;
 import fr.upmc.datacenter.providers.resources.logical.AllocatedApplicationVM;
 import fr.upmc.datacenter.providers.resources.logical.LogicalResourceProvider;
 import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderRequestingI;
+import fr.upmc.datacenter.software.controllers.performance.AllocatedDispatcher;
 
 public class LogicalResourcesProviderRequestingInboundPort 
 extends AbstractInboundPort
@@ -122,6 +123,38 @@ implements LogicalResourcesProviderRequestingI
 			@Override
 			public Void call() throws Exception {
 				lrp.releaseApplicationVMs(requesterUri, avms);
+				return null;
+			}
+
+		});
+	}
+	
+	@Override
+	public void connectApplicationVM(String requesterUri, AllocatedApplicationVM aavm, AllocatedDispatcher adsp)
+			throws Exception {
+		final LogicalResourceProvider lrp = (LogicalResourceProvider) this.owner;
+
+		lrp.handleRequestSync(new ComponentService<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				lrp.connectApplicationVM(requesterUri, aavm, adsp);
+				return null;
+			}
+
+		});
+	}
+	
+	@Override
+	public void disconnectApplicationVM(String requesterUri, AllocatedApplicationVM aavm, AllocatedDispatcher adsp)
+			throws Exception {
+		final LogicalResourceProvider lrp = (LogicalResourceProvider) this.owner;
+
+		lrp.handleRequestSync(new ComponentService<Void>() {
+
+			@Override
+			public Void call() throws Exception {
+				lrp.disconnectApplicationVM(requesterUri, aavm, adsp);
 				return null;
 			}
 

@@ -1,8 +1,8 @@
-package fr.upmc.datacenter.software.admissioncontroller.ports;
+package fr.upmc.datacenter.software.admissioncontroller_old.ports;
 
 import fr.upmc.components.ComponentI;
 import fr.upmc.components.ports.AbstractOutboundPort;
-import fr.upmc.datacenter.software.admissioncontroller.interfaces.AdmissionControllerManagementI;
+import fr.upmc.datacenter.software.admissioncontroller_old.interfaces.AdmissionControllerManagementI;
 import fr.upmc.external.software.applications.AbstractApplication;
 
 /**

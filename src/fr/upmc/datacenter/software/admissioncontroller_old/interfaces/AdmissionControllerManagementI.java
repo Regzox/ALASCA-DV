@@ -1,4 +1,4 @@
-package fr.upmc.datacenter.software.admissioncontroller.interfaces;
+package fr.upmc.datacenter.software.admissioncontroller_old.interfaces;
 
 import fr.upmc.components.interfaces.OfferedI;
 import fr.upmc.components.interfaces.RequiredI;

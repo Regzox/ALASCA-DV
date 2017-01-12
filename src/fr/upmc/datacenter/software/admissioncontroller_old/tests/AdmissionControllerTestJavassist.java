@@ -1,21 +1,39 @@
-package fr.upmc.datacenter.software.admissioncontroller.tests;
+package fr.upmc.datacenter.software.admissioncontroller_old.tests;
 
 import fr.upmc.components.AbstractComponent;
 import fr.upmc.components.cvm.AbstractCVM;
 import fr.upmc.datacenter.hardware.computer.stock.Stock;
 import fr.upmc.datacenter.hardware.processor.model.Model;
-import fr.upmc.datacenter.software.admissioncontroller.AdmissionController;
-import fr.upmc.datacenter.software.admissioncontroller.connectors.AdmissionControllerManagementConnector;
-import fr.upmc.datacenter.software.admissioncontroller.interfaces.AdmissionControllerManagementI;
-import fr.upmc.datacenter.software.admissioncontroller.ports.AdmissionControllerManagementOutboundPort;
+import fr.upmc.datacenter.software.admissioncontroller_old.AdmissionController;
+import fr.upmc.datacenter.software.admissioncontroller_old.connectors.AdmissionControllerManagementConnector;
+import fr.upmc.datacenter.software.admissioncontroller_old.interfaces.AdmissionControllerManagementI;
+import fr.upmc.datacenter.software.admissioncontroller_old.ports.AdmissionControllerManagementOutboundPort;
 import fr.upmc.datacenter.software.dispatcher.Dispatcher;
-import fr.upmc.datacenterclient.requestgenerator.ports.RequestGeneratorManagementOutboundPort;
+import fr.upmc.datacenter.software.ports.RequestNotificationInboundPort;
+import fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort;
+import fr.upmc.datacenterclient.requestgenerator.RequestGenerator;
+import fr.upmc.external.software.applications.webserver.HttpRequest;
+import fr.upmc.external.software.applications.webserver.WebServer;
+import fr.upmc.external.software.applications.webserver.interfaces.WebServerI;
+import fr.upmc.javassist.DynamicConnectorFactory;
 
-public class AdmissionControllerTest extends AbstractCVM {
+/**
+ * Reprend le même schéma que {@link AdmissionControllerTest} mais cette fois c'est un objet externe qui est créé
+ * sous la forme d'une application implémentant un {@link AbstractComponent} possèdant un {@link RequestNotificationInboundPort}
+ * et un {@link RequestSubmissionOutboundPort} comme le {@link RequestGenerator}.
+ * 
+ * L'objet utilisé dans cette simulation est un {@link WebServer} qui peut soumettre des requêtes via son l'interface de 
+ * soumission proposé à ses client {@link WebServerI}.
+ * 
+ * Cette simulation à simplement pour but de tester la génération automatique des connecteurs en fonction des interfaces présentés 
+ * à la {@link DynamicConnectorFactory}
+ * 
+ * @author Daniel RADEAU
+ *
+ */
 
-	public static long emissionDelay = 40 * 1000L;
-	public static long simulationDelay = 60 * 1000L;
-	
+public class AdmissionControllerTestJavassist extends AbstractCVM {
+
 	protected final String admissionControllerURI = "admissionController";
 	protected final String admissionControllerManagementInboundPortURI = "admissionController-mip";
 	protected final String admissionControllerManagementOutboundPortURI = "admissionController-mop";
@@ -25,8 +43,9 @@ public class AdmissionControllerTest extends AbstractCVM {
 	protected Stock computerPark;
 
 	AdmissionController admissionController;
+	WebServer webServer;
 
-	public AdmissionControllerTest() throws Exception {
+	public AdmissionControllerTestJavassist() throws Exception {
 		super();
 
 		/**
@@ -63,6 +82,9 @@ public class AdmissionControllerTest extends AbstractCVM {
 		acmop.publishPort();
 		acmop.doConnection(admissionControllerManagementInboundPortURI, AdmissionControllerManagementConnector.class.getCanonicalName());	
 
+		webServer = new WebServer("web-server", "web-server-rsop", "web-server-rnip");
+		addDeployedComponent(webServer);
+		
 		super.deploy();
 	}
 	
@@ -71,7 +93,6 @@ public class AdmissionControllerTest extends AbstractCVM {
 		super.start();
 			
 		for (String computerURI : computerPark.getComputersURI()) {
-			
 			acmop.connectToComputer(
 					computerURI, 
 					computerPark.getComputerServicesInboundPortURIMap().get(computerURI), 
@@ -79,7 +100,6 @@ public class AdmissionControllerTest extends AbstractCVM {
 					computerPark.getComputerDynamicStateDataInboundPortURIMap().get(computerURI),
 					computerPark.getComputerCoreReleasingInboundPortURIMap().get(computerURI)
 					);
-			
 		}
 		
 		
@@ -91,16 +111,20 @@ public class AdmissionControllerTest extends AbstractCVM {
 		super.shutdown();
 	}
 
+	/**
+	 * Dans ce scénario très simple, on simule 3 appels client à la page www.nothing.com supossant que chaque appel
+	 * requière un nombre fixe d'instruction pour s'executer et recupérer une réponse
+	 * 
+	 * @throws Exception
+	 */
+	
 	public void scenario() throws Exception {
 
-		String requestGeneratorManagementOutboundPortURI = acmop.submitApplication();
-		RequestGeneratorManagementOutboundPort rgmop = (RequestGeneratorManagementOutboundPort) admissionController.findPortFromURI(requestGeneratorManagementOutboundPortURI);
-		rgmop.startGeneration();
-		Thread.sleep(emissionDelay);
-		rgmop.stopGeneration();
-
-		System.out.println(rgmop.getServerPortURI() + " ENDED");
-
+		acmop.submitApplication(webServer, WebServerI.class);
+		webServer.getWebPage(new HttpRequest("simple-page-request-1", 100000000L, "www.nothing.com"));
+		webServer.getWebPage(new HttpRequest("simple-page-request-2", 100000000L, "www.nothing.com"));
+		webServer.getWebPage(new HttpRequest("simple-page-request-3", 100000000L, "www.nothing.com"));
+	
 	}
 
 	public void incrementation() throws Exception {
@@ -109,7 +133,7 @@ public class AdmissionControllerTest extends AbstractCVM {
 
 	public static void main(String[] args) {
 		try {
-			final AdmissionControllerTest target = new AdmissionControllerTest();
+			final AdmissionControllerTestJavassist target = new AdmissionControllerTestJavassist();
 			System.out.println("Deployement ... ");
 			target.deploy();
 			System.out.println("Starting ... ");
@@ -131,35 +155,35 @@ public class AdmissionControllerTest extends AbstractCVM {
 				}
 			}).start() ;
 
-//			new Thread(new Runnable() {
-//				@Override
-//				public void run() {
-//					try {
-//						target.scenario() ;
-//					} catch (Exception e) {
-//						throw new RuntimeException(e) ;
-//					}
-//				}
-//			}).start() ;
+			new Thread(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						target.scenario() ;
+					} catch (Exception e) {
+						throw new RuntimeException(e) ;
+					}
+				}
+			}).start() ;
 
 			/**
 			 * Lancement d'une incrémentation sur le contrôleur d'admission
 			 */
 
-//			Thread.sleep(5000L);
-//			
-//			new Thread(new Runnable() {
-//				@Override
-//				public void run() {
-//					try {
-//						target.incrementation();
-//					} catch (Exception e) {
-//						throw new RuntimeException(e) ;
-//					}
-//				}
-//			}).start() ;
+			Thread.sleep(5000L);
+			
+			new Thread(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						target.incrementation();
+					} catch (Exception e) {
+						throw new RuntimeException(e) ;
+					}
+				}
+			}).start() ;
 
-			Thread.sleep(simulationDelay);
+			Thread.sleep(30000L);
 
 			System.out.println("Stopping ... ");
 			target.shutdown();

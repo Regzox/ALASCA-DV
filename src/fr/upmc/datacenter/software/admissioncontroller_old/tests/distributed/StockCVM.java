@@ -1,4 +1,4 @@
-package fr.upmc.datacenter.software.admissioncontroller.tests.distributed;
+package fr.upmc.datacenter.software.admissioncontroller_old.tests.distributed;
 
 import fr.upmc.components.cvm.AbstractDistributedCVM;
 import fr.upmc.datacenter.hardware.computer.stock.Stock;

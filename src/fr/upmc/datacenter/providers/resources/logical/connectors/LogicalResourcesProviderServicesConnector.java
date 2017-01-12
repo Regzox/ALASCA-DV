@@ -2,7 +2,9 @@ package fr.upmc.datacenter.providers.resources.logical.connectors;
 
 import fr.upmc.components.connectors.AbstractConnector;
 import fr.upmc.datacenter.providers.resources.logical.AllocatedApplicationVM;
+import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderRequestingI;
 import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderServicesI;
+import fr.upmc.datacenter.software.controllers.performance.AllocatedDispatcher;
 
 public class LogicalResourcesProviderServicesConnector 
 extends AbstractConnector
@@ -37,6 +39,17 @@ implements LogicalResourcesProviderServicesI
 	@Override
 	public void releaseApplicationVMs(AllocatedApplicationVM[] avms) throws Exception {
 		( (LogicalResourcesProviderServicesI) this.offering ).releaseApplicationVMs(avms);		
+	}
+	
+	@Override
+	public void connectApplicationVM(AllocatedApplicationVM aavm, AllocatedDispatcher adsp) throws Exception {
+		( (LogicalResourcesProviderServicesI) this.offering ).connectApplicationVM(aavm, adsp);		
+	}
+	
+	@Override
+	public void disconnectApplicationVM(AllocatedApplicationVM aavm, AllocatedDispatcher adsp)
+			throws Exception {
+		( (LogicalResourcesProviderServicesI) this.offering ).disconnectApplicationVM(aavm, adsp);
 	}
 
 }

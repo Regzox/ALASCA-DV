@@ -1,4 +1,4 @@
-package fr.upmc.datacenter.software.admissioncontroller;
+package fr.upmc.datacenter.software.admissioncontroller_old;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,9 +40,9 @@ import fr.upmc.datacenter.hardware.processors.interfaces.ProcessorManagementI;
 import fr.upmc.datacenter.hardware.processors.ports.ProcessorIntrospectionOutboundPort;
 import fr.upmc.datacenter.hardware.processors.ports.ProcessorManagementOutboundPort;
 import fr.upmc.datacenter.interfaces.ControlledDataRequiredI.ControlledPullI;
-import fr.upmc.datacenter.software.admissioncontroller.interfaces.AdmissionControllerI;
-import fr.upmc.datacenter.software.admissioncontroller.interfaces.AdmissionControllerManagementI;
-import fr.upmc.datacenter.software.admissioncontroller.ports.AdmissionControllerManagementInboundPort;
+import fr.upmc.datacenter.software.admissioncontroller_old.interfaces.AdmissionControllerI;
+import fr.upmc.datacenter.software.admissioncontroller_old.interfaces.AdmissionControllerManagementI;
+import fr.upmc.datacenter.software.admissioncontroller_old.ports.AdmissionControllerManagementInboundPort;
 import fr.upmc.datacenter.software.applicationvm.connectors.ApplicationVMManagementConnector;
 import fr.upmc.datacenter.software.applicationvm.extended.ApplicationVM;
 import fr.upmc.datacenter.software.applicationvm.extended.connectors.ApplicationVMCoreReleasingConnector;
@@ -84,8 +84,6 @@ import fr.upmc.datacenterclient.requestgenerator.ports.RequestGeneratorManagemen
 import fr.upmc.external.software.applications.AbstractApplication;
 import fr.upmc.javassist.DynamicConnectorFactory;
 import fr.upmc.nodes.ComponentDataNode;
-import javassist.CtPrimitiveType;
-import javassist.bytecode.stackmap.BasicBlock.Catch;
 
 /**
  * Le {@link AdmissionController} a pour rôle de récupérer les demandes clientes

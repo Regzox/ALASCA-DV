@@ -1,7 +1,7 @@
-package fr.upmc.datacenter.software.admissioncontroller.connectors;
+package fr.upmc.datacenter.software.admissioncontroller_old.connectors;
 
 import fr.upmc.components.connectors.AbstractConnector;
-import fr.upmc.datacenter.software.admissioncontroller.interfaces.AdmissionControllerManagementI;
+import fr.upmc.datacenter.software.admissioncontroller_old.interfaces.AdmissionControllerManagementI;
 import fr.upmc.external.software.applications.AbstractApplication;
 
 /**

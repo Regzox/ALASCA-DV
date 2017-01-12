@@ -1,11 +1,11 @@
-package fr.upmc.datacenter.software.admissioncontroller.tests.distributed;
+package fr.upmc.datacenter.software.admissioncontroller_old.tests.distributed;
 
 import fr.upmc.components.AbstractComponent;
 import fr.upmc.components.cvm.AbstractDistributedCVM;
-import fr.upmc.datacenter.software.admissioncontroller.AdmissionController;
-import fr.upmc.datacenter.software.admissioncontroller.connectors.AdmissionControllerManagementConnector;
-import fr.upmc.datacenter.software.admissioncontroller.interfaces.AdmissionControllerManagementI;
-import fr.upmc.datacenter.software.admissioncontroller.ports.AdmissionControllerManagementOutboundPort;
+import fr.upmc.datacenter.software.admissioncontroller_old.AdmissionController;
+import fr.upmc.datacenter.software.admissioncontroller_old.connectors.AdmissionControllerManagementConnector;
+import fr.upmc.datacenter.software.admissioncontroller_old.interfaces.AdmissionControllerManagementI;
+import fr.upmc.datacenter.software.admissioncontroller_old.ports.AdmissionControllerManagementOutboundPort;
 import fr.upmc.datacenter.software.dispatcher.Dispatcher;
 import fr.upmc.datacenter.software.enumerations.Tag;
 import fr.upmc.datacenterclient.requestgenerator.ports.RequestGeneratorManagementOutboundPort;

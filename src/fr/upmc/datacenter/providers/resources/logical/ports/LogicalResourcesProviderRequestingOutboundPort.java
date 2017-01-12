@@ -4,6 +4,7 @@ import fr.upmc.components.ComponentI;
 import fr.upmc.components.ports.AbstractOutboundPort;
 import fr.upmc.datacenter.providers.resources.logical.AllocatedApplicationVM;
 import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderRequestingI;
+import fr.upmc.datacenter.software.controllers.performance.AllocatedDispatcher;
 
 public class LogicalResourcesProviderRequestingOutboundPort 
 extends AbstractOutboundPort
@@ -50,6 +51,18 @@ implements LogicalResourcesProviderRequestingI
 		( (LogicalResourcesProviderRequestingI) this.connector ).releaseApplicationVMs(requesterUri, avms);
 	}
 
+	@Override
+	public void connectApplicationVM(String requesterUri, AllocatedApplicationVM aavm, AllocatedDispatcher adsp)
+			throws Exception {
+		( (LogicalResourcesProviderRequestingI) this.connector ).connectApplicationVM(requesterUri, aavm, adsp);
+	}
+	
+	@Override
+	public void disconnectApplicationVM(String requesterUri, AllocatedApplicationVM aavm, AllocatedDispatcher adsp)
+			throws Exception {
+		( (LogicalResourcesProviderRequestingI) this.connector ).disconnectApplicationVM(requesterUri, aavm, adsp);
+	}
+	
 	@Override
 	public boolean isLocal(Object o) throws Exception {
 		return ( (LogicalResourcesProviderRequestingI) this.connector ).isLocal(o);
