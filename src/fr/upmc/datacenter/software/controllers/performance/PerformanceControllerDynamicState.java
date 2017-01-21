@@ -64,16 +64,12 @@ public class PerformanceControllerDynamicState {
 		 */
 		
 		public boolean isChanged() throws Exception {
-			System.out.println(1);
 			assert coreVariation != null;
-			System.out.println(2);
 			return coreVariation == 0;
 		}
 		
 		public AllocatedApplicationVM getAllocatedApplicationVM() throws Exception {
-			System.out.println(3);
 			assert aavm != null;
-			System.out.println(4);
 			return aavm;
 		}
 		
@@ -89,7 +85,6 @@ public class PerformanceControllerDynamicState {
 		 */
 		
 		public synchronized boolean step() throws Exception {
-			System.out.println(5);
 			assert aavm != null;
 			assert coreVariation != null;
 			
@@ -97,7 +92,6 @@ public class PerformanceControllerDynamicState {
 				coreVariation++;
 			else if (coreVariation > 0)
 				coreVariation--;
-			System.out.println(6);
 			return isChanged();
 		}
 		
@@ -138,7 +132,6 @@ public class PerformanceControllerDynamicState {
 			Integer[] coreCounts
 			) throws Exception 
 	{
-		System.out.println(7);
 		assert adsp != null;
 		assert arg != null;
 		assert aavms != null;
@@ -167,7 +160,6 @@ public class PerformanceControllerDynamicState {
 		for (int i = 0; i < aavms.length; i++) {
 			assert aavmsCoreCountMap.get(aavms[i]) != null;
 		}
-		System.out.println(8);
 	}
 	
 	/**
@@ -178,7 +170,6 @@ public class PerformanceControllerDynamicState {
 	 */
 	
 	public synchronized void removeAllocatedDispatcher(AllocatedDispatcher adsp) throws Exception {
-		System.out.println(9);
 		assert adsp != null;
 		assert argMap.get(adsp) != null;
 		assert aavmsMap.get(adsp) != null;
@@ -188,7 +179,6 @@ public class PerformanceControllerDynamicState {
 		
 		assert argMap.get(adsp) == null;
 		assert aavmsMap.get(adsp) == null;
-		System.out.println(10);
 	}
 	
 	/**
@@ -200,7 +190,6 @@ public class PerformanceControllerDynamicState {
 	 */
 	
 	public synchronized void addAllocatedApplicationVM(AllocatedDispatcher adsp, AllocatedApplicationVM aavm, Integer coreCount) throws Exception {
-		System.out.println(11);
 		assert adsp != null;
 		assert aavm != null;
 		assert aavmsMap.get(adsp) != null;
@@ -213,7 +202,6 @@ public class PerformanceControllerDynamicState {
 		aavmsCoreCountMap.put(aavm, coreCount);
 		
 		assert aavmsMap.get(adsp).size() == (size + 1);
-		System.out.println(12);
 	}
 	
 	/**
@@ -225,7 +213,6 @@ public class PerformanceControllerDynamicState {
 	 */
 	
 	public synchronized void removeAllocatedApplicationVM(AllocatedDispatcher adsp, AllocatedApplicationVM aavm) throws Exception {
-		System.out.println(13);
 		assert aavm != null;
 		assert aavmsMap.get(adsp) != null;
 		assert aavmsMap.get(adsp).contains(aavm);
@@ -246,7 +233,6 @@ public class PerformanceControllerDynamicState {
 		assert !aavmsMap.get(adsp).contains(aavm);
 		assert aavmsCoreCountMap.get(aavm) == null;
 		assert !stateChanging.contains(result);
-		System.out.println(14);
 	}
 	
 	/**
@@ -258,7 +244,6 @@ public class PerformanceControllerDynamicState {
 	 */
 	
 	public synchronized void increaseAllocatedCoreCount(AllocatedApplicationVM aavm, Integer coreNumber) throws Exception {
-		System.out.println(15);
 		assert aavm != null;
 		assert coreNumber != null;
 		assert coreNumber > 0;
@@ -267,7 +252,6 @@ public class PerformanceControllerDynamicState {
 		Integer coreCount = aavmsCoreCountMap.get(aavm);
 		coreCount += coreNumber;
 		aavmsCoreCountMap.put(aavm, coreCount);
-		System.out.println(16);
 	}
 	
 	/**
@@ -279,7 +263,6 @@ public class PerformanceControllerDynamicState {
 	 */
 	
 	public synchronized void decreaseAllocatedCoreCount(AllocatedApplicationVM aavm, Integer coreNumber) throws Exception {
-		System.out.println(17);
 		assert aavm != null;
 		assert coreNumber != null;
 		assert coreNumber > 0;
@@ -289,7 +272,6 @@ public class PerformanceControllerDynamicState {
 		Integer coreCount = aavmsCoreCountMap.get(aavm);
 		coreCount -= coreNumber;
 		aavmsCoreCountMap.put(aavm, coreCount);
-		System.out.println(18);
 	}
 	
 	/**
@@ -301,23 +283,18 @@ public class PerformanceControllerDynamicState {
 	 */
 	
 	public synchronized void pushAllocatedApplicationVMChangingState(AllocatedApplicationVM aavm, Integer coreVariation) throws Exception {
-		System.out.println(19);
 		assert aavm != null;
 		assert coreVariation != null;
 		assert stateChanging != null;
 
-		System.out.println("OK");
-		
 		int size = stateChanging.size();
 		AllocatedApplicationVMStateChanging aavmsc = new AllocatedApplicationVMStateChanging(aavm, coreVariation);
-		
 		
 		assert !stateChanging.contains(aavmsc);
 		
 		stateChanging.add(aavmsc);
 		
 		assert stateChanging.size() == (size + 1); 
-		System.out.println(20);
 	}
 	
 	/**
@@ -330,7 +307,6 @@ public class PerformanceControllerDynamicState {
 	 */
 	
 	public synchronized boolean step(AllocatedApplicationVM aavm) throws Exception {
-		System.out.println(21);
 		assert aavm != null;
 		assert stateChanging != null;
 		assert !stateChanging.isEmpty();
@@ -359,7 +335,6 @@ public class PerformanceControllerDynamicState {
 		if ( result != null )
 			assert stateChanging.remove(result);
 		
-		System.out.println(22);
 		return finished;
 	}
 	
@@ -371,7 +346,6 @@ public class PerformanceControllerDynamicState {
 	 */
 	
 	public synchronized boolean isChanged(AllocatedApplicationVM aavm) throws Exception {
-		System.out.println(23);
 		assert aavm != null;
 		assert stateChanging != null;
 		assert !stateChanging.isEmpty();
@@ -384,12 +358,10 @@ public class PerformanceControllerDynamicState {
 		}
 		
 		assert result != null;
-		System.out.println(24);
 		return result; 
 	}
 	
 	public synchronized boolean isChanging(AllocatedApplicationVM aavm) throws Exception {
-		System.out.println(25);
 		boolean result = false;
 		for ( AllocatedApplicationVMStateChanging aavmsc : stateChanging ) {
 			System.out.println("\tstateChanging\t" +aavmsc.getAllocatedApplicationVM().avmURI);
@@ -397,57 +369,44 @@ public class PerformanceControllerDynamicState {
 			if ( aavmsc.getAllocatedApplicationVM().equals(aavm) )
 				result = true;
 		}
-		System.out.println(26);
 		return result;
 	}
 	
 	public synchronized List<AllocatedApplicationVM> getChangingAllocatedApplicationVM() throws Exception {
-		System.out.println(27);
 		ArrayList<AllocatedApplicationVM> list = new ArrayList<>();
 		
 		for ( AllocatedApplicationVMStateChanging aavmsc : stateChanging ) {
 			list.add(aavmsc.getAllocatedApplicationVM());
 		}
-		System.out.println(28);
 		return list;
 	}
 	
 	public synchronized List<AllocatedApplicationVM> getAllocatedApplicationVMs(AllocatedDispatcher adsp) {
-		System.out.println(29);
 		assert adsp != null;
 		assert aavmsMap != null;
-		System.out.println(30);
 		return aavmsMap.get(adsp);
 	}
 	
 	public synchronized List<AllocatedApplicationVM> getAllocatedApplicationVMs() {
-		System.out.println(31);
 		assert aavmsMap != null;
 		assert aavmsMap.size() == 1;
-		System.out.println(32);
 		return aavmsMap.get(new ArrayList<>(aavmsMap.keySet()).get(0));
 	}
 	
 	public synchronized Integer getAllocatedApplicationVMCoreCount(AllocatedApplicationVM aavm) {
-		System.out.println(33);
 		assert aavm != null;
 		assert aavmsCoreCountMap.containsKey(aavm);
-		System.out.println(34);
 		return aavmsCoreCountMap.get(aavm);
 	}
 	
 	public synchronized AllocatedDispatcher getSingleAllocatedDispatcher() {
-		System.out.println(35);
 		assert aavmsMap != null;
 		assert aavmsMap.size() == 1;
-		System.out.println(36);
 		return new ArrayList<>(aavmsMap.keySet()).get(0);
 	}
 	
 	public synchronized void removeAllocatedApplicationVM(AllocatedApplicationVM aavm) throws Exception {
-		System.out.println(37);
 		removeAllocatedApplicationVM(getSingleAllocatedDispatcher(), aavm);
-		System.out.println(38);
 	}
 
 }

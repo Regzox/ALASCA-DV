@@ -62,7 +62,6 @@ public class LogicalResourcesProviderDynamicState {
 			RequestNotificationOutboundPort rnop, 
 			CoreReleasingNotificationOutboundPort crnop) throws Exception
 	{
-		System.out.println("BEFORE : addAllocatedApplicationVM");
 		assert aavm != null;
 		assert acs != null;
 		assert rnop != null;
@@ -86,7 +85,6 @@ public class LogicalResourcesProviderDynamicState {
 		assert rnopsmap.get(aavm) != null;
 		assert crnopsmap.get(aavm) != null;
 		assert list.size() == acs.length;
-		System.out.println("AFTER : addAllocatedApplicationVM");
 	}
 	
 	/**
@@ -97,7 +95,6 @@ public class LogicalResourcesProviderDynamicState {
 	 */
 	
 	public synchronized void removeAllocatedApplicationVM(AllocatedApplicationVM aavm) throws Exception {
-		System.out.println("BEFORE : removeAllocatedApplicationVM");
 		assert aavm != null;
 		assert acsmap.containsKey(aavm);
 		assert rnopsmap.containsKey(aavm);
@@ -110,7 +107,6 @@ public class LogicalResourcesProviderDynamicState {
 		assert !acsmap.containsKey(aavm);
 		assert !rnopsmap.containsKey(aavm);
 		assert !crnopsmap.containsKey(aavm);
-		System.out.println("AFTER : removeAllocatedApplicationVM");
 	}
 	
 	/**
@@ -120,10 +116,8 @@ public class LogicalResourcesProviderDynamicState {
 	 */
 	
 	public synchronized List<AllocatedCore> getAllocatedCores(AllocatedApplicationVM aavm) throws Exception {
-		System.out.println("BEFORE : getAllocatedCores");
 		assert aavm != null;
 		assert acsmap.get(aavm) != null;
-		System.out.println("AFTER : getAllocatedCores");
 		return acsmap.get(aavm);
 	}
 	
@@ -134,10 +128,8 @@ public class LogicalResourcesProviderDynamicState {
 	 */
 	
 	public synchronized RequestNotificationOutboundPort getRequestNotificationOutboundPort(AllocatedApplicationVM aavm) throws Exception {
-		System.out.println("BEFORE : getRequestNotificationOutboundPort");
 		assert aavm != null;
 		assert rnopsmap.get(aavm) != null;
-		System.out.println("AFTER : getRequestNotificationOutboundPort");
 		return rnopsmap.get(aavm);
 	}
 	
@@ -148,11 +140,9 @@ public class LogicalResourcesProviderDynamicState {
 	 */
 	
 	public synchronized CoreReleasingNotificationOutboundPort getCoreReleasingNotificationOutboundPort(AllocatedApplicationVM aavm) throws Exception {
-		System.out.println("BEFORE : getCoreReleasingNotificationOutboundPort");
 		assert aavm != null;
 		assert crnopsmap.get(aavm) != null;
 		
-		System.out.println("AFTER : getCoreReleasingNotificationOutboundPort");
 		return crnopsmap.get(aavm);
 	}
 	
@@ -164,7 +154,6 @@ public class LogicalResourcesProviderDynamicState {
 	 */
 	
 	public synchronized void addAllocatedCores(AllocatedApplicationVM aavm, AllocatedCore ac) throws Exception {
-		System.out.println("BEFORE : addAllocatedCores");
 		assert aavm != null;
 		assert ac != null;
 		assert acsmap.get(aavm) != null;
@@ -174,7 +163,6 @@ public class LogicalResourcesProviderDynamicState {
 		acsmap.get(aavm).add(ac);
 		
 		assert acsmap.get(aavm).size() == (size + 1);
-		System.out.println("AFTER : addAllocatedCores");
 	}
 	
 	/**
@@ -185,7 +173,6 @@ public class LogicalResourcesProviderDynamicState {
 	 */
 	
 	public synchronized void addAllocatedCores(AllocatedApplicationVM aavm, AllocatedCore[] acs) throws Exception {
-		System.out.println("BEFORE : addAllocatedCores");
 		assert aavm != null;
 		assert acs != null;
 		assert acsmap.get(aavm) != null;
@@ -210,7 +197,6 @@ public class LogicalResourcesProviderDynamicState {
 	 */
 	
 	public synchronized void removeAllocatedCore(AllocatedApplicationVM aavm, AllocatedCore ac) throws Exception {
-		System.out.println("BEFORE : removeAllocatedCore");
 		assert aavm != null;
 		assert ac != null;
 		assert acsmap.get(aavm) != null;
@@ -220,7 +206,6 @@ public class LogicalResourcesProviderDynamicState {
 		acsmap.get(aavm).remove(ac);
 		
 		assert acsmap.get(aavm).size() == (size - 1);
-		System.out.println("AFTER : removeAllocatedCore");
 	}
 	
 	/**
@@ -231,7 +216,6 @@ public class LogicalResourcesProviderDynamicState {
 	 */
 	
 	public synchronized void removeAllocatedCores(AllocatedApplicationVM aavm, AllocatedCore[] acs) throws Exception {
-		System.out.println("BEFORE : removeAllocatedCores");
 		assert aavm != null;
 		assert acs != null;
 		assert acsmap.get(aavm) != null;
@@ -243,7 +227,6 @@ public class LogicalResourcesProviderDynamicState {
 		for (int i = 0; i < acs.length; i++)
 			acsmap.get(aavm).remove(acs[i]);
 		assert acsmap.get(aavm).size() == (size - acs.length);
-		System.out.println("AFTER : removeAllocatedCores");
 	}
 	
 	/**
@@ -254,14 +237,12 @@ public class LogicalResourcesProviderDynamicState {
 	 */
 	
 	public synchronized void removeRequestNotificationOutboundPort(AllocatedApplicationVM aavm, RequestNotificationOutboundPort rnop) throws Exception {
-		System.out.println("BEFORE : removeRequestNotificationOutboundPort");
 		assert aavm != null;
 		assert rnop != null;
 		assert rnopsmap.get(aavm) != null;
 		assert rnopsmap.containsValue(rnop);
 		
 		rnopsmap.remove(aavm);
-		System.out.println("AFTER : removeRequestNotificationOutboundPort");
 	}
 	
 	/**
@@ -272,14 +253,12 @@ public class LogicalResourcesProviderDynamicState {
 	 */
 	
 	public synchronized void removeCoreReleasingNotificationOutboundPort(AllocatedApplicationVM aavm, CoreReleasingNotificationOutboundPort crnop) throws Exception {
-		System.out.println("BEFORE : removeCoreReleasingNotificationOutboundPort");
 		assert aavm != null;
 		assert crnop != null;
 		assert crnopsmap.get(aavm) != null;
 		assert crnopsmap.containsValue(crnop);
 		
 		crnopsmap.remove(aavm);
-		System.out.println("AFTER : removeCoreReleasingNotificationOutboundPort");
 	}
 	
 	/**
@@ -290,12 +269,10 @@ public class LogicalResourcesProviderDynamicState {
 	 */
 	
 	public synchronized void setRequestNotificationOutboundPort(AllocatedApplicationVM aavm, RequestNotificationOutboundPort rnop) throws Exception {
-		System.out.println("BEFORE : setRequestNotificationOutboundPort");
 		assert aavm != null;
 		assert rnopsmap.get(aavm) == null;
 		
 		rnopsmap.put(aavm, rnop);
-		System.out.println("AFTER : setRequestNotificationOutboundPort");
 	}
 	
 	/**
@@ -306,13 +283,11 @@ public class LogicalResourcesProviderDynamicState {
 	 */
 	
 	public synchronized void setCoreReleasingNotificationOutboundPort(AllocatedApplicationVM aavm, CoreReleasingNotificationOutboundPort crnop) throws Exception {
-		System.out.println("BEFORE : setCoreReleasingNotificationOutboundPort");
 		assert aavm != null;
 		assert crnop != null;
 		assert crnopsmap.get(aavm) == null;
 		
 		crnopsmap.put(aavm, crnop);
-		System.out.println("AFTER : setCoreReleasingNotificationOutboundPort");
 	}
 	
 	/**
@@ -321,13 +296,11 @@ public class LogicalResourcesProviderDynamicState {
 	 */
 	
 	public synchronized Set<AllocatedApplicationVM> getAllocatedApplicationVMSet() throws Exception {
-		System.out.println("BEFORE : getAllocatedApplicationVMSet");
 		Set<AllocatedApplicationVM> aavms = acsmap.keySet();
 		
 		assert rnopsmap.keySet().containsAll(aavms);
 		assert crnopsmap.keySet().containsAll(aavms);
 		
-		System.out.println("AFTER : getAllocatedApplicationVMSet");
 		return aavms;
 	}
 }

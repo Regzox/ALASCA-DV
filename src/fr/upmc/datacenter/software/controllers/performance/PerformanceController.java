@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 
 import fr.upmc.components.AbstractComponent;
 import fr.upmc.components.cvm.AbstractCVM;
@@ -14,7 +13,6 @@ import fr.upmc.datacenter.data.interfaces.LogicalResourcesProviderPortsDataI;
 import fr.upmc.datacenter.data.interfaces.PerformanceControllerPortsDataI;
 import fr.upmc.datacenter.interfaces.ControlledDataRequiredI.ControlledPullI;
 import fr.upmc.datacenter.providers.resources.exceptions.NoApplicationVMException;
-import fr.upmc.datacenter.providers.resources.exceptions.NoCoreException;
 import fr.upmc.datacenter.providers.resources.logical.AllocatedApplicationVM;
 import fr.upmc.datacenter.providers.resources.logical.connectors.LogicalResourcesProviderServicesConnector;
 import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderCoreReleasingNotificationHandlerI;
@@ -61,9 +59,9 @@ implements 	PerformanceControllerI,
 {
 
 	public static boolean MULTIAPPLICATION = false;
-	public static int DISPATCHER_PUSHING_INTERVAL = 500; // ms
+	public static int DISPATCHER_PUSHING_INTERVAL = 1000; // ms
 	public static int MINIMUM_CORES_BY_AVM = 1;
-	public static int MAXIMUM_CORES_BY_AVM = 8;
+	public static int MAXIMUM_CORES_BY_AVM = 5;
 
 	List<DispatcherDynamicStateI> logs;
 
@@ -79,7 +77,6 @@ implements 	PerformanceControllerI,
 
 	public enum Branch {LOGICAL_RESOURCES_PROVIDERS, DISPATCHERS, REQUEST_GENERATORS, APPLICATION_VMS, PERFORMANCE_CONTROLLER}
 
-	//AllocatedDispatcherDataStore adds;
 	Dispatcher dsp;
 	PerformanceControllerDynamicState pcds;
 
@@ -98,9 +95,7 @@ implements 	PerformanceControllerI,
 		super(3, 1);
 
 		logs = new ArrayList<>();
-//		adds = new AllocatedDispatcherDataStore();
 		pcds = new PerformanceControllerDynamicState();
-		//		allocatedDsps = new HashMap<>();
 		dspddsimap = new HashMap<>();
 
 		performanceController = new ComponentDataNode(uri)
@@ -313,12 +308,6 @@ implements 	PerformanceControllerI,
 				.addPort(aavms[0].avmrnopURI)
 				.addPort(aavms[0].avmrsipURI);
 
-//		adds.adsp = adsp;
-//		adds.setRequestGenerator(argn);
-//		adds.updateAllocatedApplicationVMCoreCount(aavms[0], 1);
-		
-		//TODO
-		
 		Integer[] coreCounts = new Integer[1];
 		coreCounts[0] = 1;
 		pcds.addAllocatedDispatcher(adsp, argn, aavms, coreCounts);
@@ -544,7 +533,6 @@ implements 	PerformanceControllerI,
 				Integer pendingsCount = dspdsi.getPendingRequests().get(rsopURI).size();
 				Integer allocatedCoreCount = pcds.getAllocatedApplicationVMCoreCount(aavm);
 				Double usagePercent = 100 * (pendingsCount.doubleValue()/allocatedCoreCount.doubleValue());
-//				Integer avmCount = dspdsi.avmCount();
 
 				/**
 				 * Si la durée est à zéro, c'est que la première tâche de l'AVM n'est pas terminée et 
@@ -568,11 +556,8 @@ implements 	PerformanceControllerI,
 
 				/** On affiche les résultats avant la loi de contrôle **/
 
-				sb.append("\t\tAVM URI \t:\t").append(aavm.avmURI);
-//				if ( !adds.getAllocatedApplicationVMs().contains(aavm) )
-//					sb.append("\t<terminating>");
-
 				sb
+				.append("\t\tAVM URI \t:\t").append(aavm.avmURI)
 				.append("\n")
 				.append("\t\tDURATION \t:\t").append(duration.getMilliseconds()).append("ms\n")
 				.append("\t\tPENDINGS \t:\t").append(pendingsCount).append("\n")
@@ -587,51 +572,30 @@ implements 	PerformanceControllerI,
 				 * contrôleur de performances et son fournisseur de resources logiques.
 				 */
 
-//				if (ticking % 2 == 0)
-//				performIncreaseApplicationVMCores(aavm, 2);
-//				if (ticking % 3 == 0)
-//				performDecreaseApplicationVMCores(aavm, 1);
-//				if (ticking % 4 == 0)
-//				performIncreaseApplicationVMCores(aavm, 1);
-//				if (ticking % 5 == 0)
-//				performDecreaseApplicationVMCores(aavm, 2);
-				
-//				if ( allocatedCoreCount == 0 ) {
-//					logMessage("AVM without core detected, it will be corrected");
-//					performIncreaseApplicationVMCores(aavm, 1);
-//				}
-//
 				sb.append("\t\tIS NOT CHANGING :\t\t").append(!pcds.isChanging(aavm)).append("\n");
-//				if ( !pcds.isChanging(aavm) ) {
-//					if ( (duration.getMilliseconds() > 5000) || (usagePercent > 500) ) {
-//						performIncreaseApplicationVMCores(aavm, (int) (usagePercent * 0.01 + (duration.getMilliseconds() - 5000) * 0.001));
-//					} else if ( duration.getMilliseconds() > 3000 ) {
-//						performIncreaseApplicationVMFrequency(aavm);
-//					} else if ( duration.getMilliseconds() > 2000 ) {
-//						performDecreaseApplicationVMFrequency(aavm);
-//					} else if ( (duration.getMilliseconds() < 2000) || (usagePercent < 50) ) {
-//						performDecreaseApplicationVMCores(aavm, (int) ( allocatedCoreCount * 0.5 + (duration.getMilliseconds()) * 0.001));
-//					}
-//				}
+				if ( !pcds.isChanging(aavm) ) {
+					if ( (duration.getMilliseconds() > 5000) || (usagePercent > 500) ) {
+						performIncreaseApplicationVMCores(aavm, (int) (usagePercent * 0.01 + (duration.getMilliseconds() - 5000) * 0.001));
+					} else if ( duration.getMilliseconds() > 3000 ) {
+						performIncreaseApplicationVMFrequency(aavm);
+					} else if ( duration.getMilliseconds() > 2000 ) {
+						performDecreaseApplicationVMFrequency(aavm);
+					} else if ( (duration.getMilliseconds() < 2000) || (usagePercent < 50) ) {
+						performDecreaseApplicationVMCores(aavm, (int) ( allocatedCoreCount * 0.5 + (duration.getMilliseconds()) * 0.001));
+					}
+				}
 
-				if ( allocatedCoreCount == 1 && !pcds.isChanging(aavm) )
-					performIncreaseApplicationVMCores(aavm, 7);
-				else if ( !pcds.isChanging(aavm) )
-					performDecreaseApplicationVMCores(aavm, 1);
 			}
 
 			Integer avmCount = dspdsi.avmCount();
 			
 			avgusage = ((double)totalPendings/totalAllocatedCores);
 
-//			if ( ((avmCount * MAXIMUM_CORES_BY_AVM) ==  totalAllocatedCores) )
-//				performAllocateApplicationVM(1);
-			
-//			if ( ((avgduration > 8000) || (avgusage > 300)) && ((avmCount * MAXIMUM_CORES_BY_AVM) ==  totalAllocatedCores))
-//				performAllocateApplicationVM(1);
-//
-//			if ( ((avgduration < 2000) || (avgusage < 50)) && (avmCount - releasing > 1) )
-//				performReleaseApplicationVM(1);
+			if ( ((avgduration > 8000) || (avgusage > 300)) && ((avmCount * MAXIMUM_CORES_BY_AVM) ==  totalAllocatedCores))
+				performAllocateApplicationVM(1);
+
+			if ( ((avgduration < 2000) || (avgusage < 50)) && (avmCount - releasing > 1) )
+				performReleaseApplicationVM(1);
 
 			sb
 			.append("\t\t--------<AVERAGES>--------\n\n")
@@ -747,7 +711,6 @@ implements 	PerformanceControllerI,
 				performIncreaseApplicationVMCores(aavm, 1);
 			}
 			
-//			adds.updateAllocatedApplicationVMCoreCount(aavm, coreCount); // Peut conduire à une allocation trop grande (Ajouter un port de notification pour mettre à jour cette valeur)
 		}
 
 		logMessage(tickString() + "performDecreaseApplicationVMCores for [" + aavm.avmURI + "] END");
@@ -780,7 +743,6 @@ implements 	PerformanceControllerI,
 					.addPort(aavms[i].avmrnopURI)
 					.addPort(aavms[i].avmrsipURI);
 
-//			adds.updateAllocatedApplicationVMCoreCount(aavms[i], 1);
 			pcds.addAllocatedApplicationVM(pcds.getSingleAllocatedDispatcher(), aavms[i], 1);
 
 			DispatcherManagementOutboundPort dspmop = (DispatcherManagementOutboundPort) findPortFromURI(dspmopURI);
@@ -808,15 +770,6 @@ implements 	PerformanceControllerI,
 
 				dspdn.trustedConnect(dsprsopURI, aavms[i].avmrsipURI);
 				avmdn.trustedConnect(aavms[i].avmrnopURI, dsprnipURI);
-
-				//			System.out.println("BIG BUG");
-				//			for ( ComponentDataNode dn : performanceController.findByURI(Branch.APPLICATION_VMS).children)
-				//				System.out.println(dn.uri);
-				//			System.out.println();
-				//			System.out.println(dspdn);
-				//			System.out.println(avmdn);
-				//			System.out.println(dsprsopURI + " +++++ " + aavms[i].avmrsipURI);
-				//			System.out.println(aavms[i].avmrnopURI + " +++++ " + dsprnipURI);
 
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -860,8 +813,6 @@ implements 	PerformanceControllerI,
 
 			for ( AllocatedApplicationVM aavm : pcds.getAllocatedApplicationVMs() ) {
 				if ( aavm.avmURI.equals(avmdn.uri) ) {
-
-					//				System.out.println("DEBUG : " + avmdn);
 
 					AllocatedDispatcher adsp = new AllocatedDispatcher(
 							pcds.getSingleAllocatedDispatcher().dspURI, 
@@ -909,7 +860,6 @@ implements 	PerformanceControllerI,
 
 	@Override
 	public void acceptCoreReleasingNotification(AllocatedApplicationVM aavm) throws Exception {
-		System.out.println("STEPPING");
 		pcds.step(aavm);
 	}
 
