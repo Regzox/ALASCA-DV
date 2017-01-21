@@ -28,6 +28,8 @@ import fr.upmc.datacenter.hardware.computers.ports.ComputerDynamicStateDataOutbo
 import fr.upmc.datacenter.hardware.computers.ports.ComputerServicesOutboundPort;
 import fr.upmc.datacenter.hardware.computers.ports.ComputerStaticStateDataOutboundPort;
 import fr.upmc.datacenter.hardware.processors.Processor.ProcessorPortTypes;
+import fr.upmc.datacenter.hardware.processors.Core;
+import fr.upmc.datacenter.hardware.processors.Processor;
 import fr.upmc.datacenter.hardware.processors.ProcessorDynamicState;
 import fr.upmc.datacenter.hardware.processors.ProcessorStaticState;
 import fr.upmc.datacenter.hardware.processors.connectors.ProcessorIntrospectionConnector;
@@ -54,6 +56,28 @@ import fr.upmc.datacenter.software.enumerations.Tag;
 import fr.upmc.datacenter.software.enumerations.Variation;
 import fr.upmc.nodes.ComponentDataNode;
 
+/**
+ * Fournisseur de resources physiques. ({@link PhysicalResourcesProvider})<br><br>
+ * Les fournisseurs de resources physiques sont en commmunication directe avec les {@link Computer}.<br>
+ * Ils propose une interface de services {@link PhysicalResourcesProviderServicesI} permettant de réaliser des oppérations sur les {@link Core}
+ * des {@link Processor} contenus dans les {@link Computer} auquels ils sont connectés.<br>
+ * De plus les fournisseurs de resources physiques ont la possibilité d'être connectés en anneaux.<br>
+ * Pour celà ils disposent d'un {@link PhysicalResourcesProviderRequestingInboundPort} au peut se connecter
+ * un autre fournisseur de resources physiques. Cette connexion en anneau permet de la même façon qu'un autre
+ * composant serait connecté au {@link PhysicalResourcesProviderServicesInboundPort} de demander une action à 
+ * réaliser sur les {@link Core}.<br> 
+ * Toute action demandée sur un {@link Core} est toujours réalisée au près du {@link PhysicalResourcesProvider} qui le possède.<br> 
+ * L'unité d'échange du {@link PhysicalResourcesProvider} est
+ * le {@link AllocatedCore}.<br> 
+ * C'est par le biais d'un {@link AllocatedCore} que toute action sur les {@link Core}
+ * est autorisée.<br>
+ * Les {@link AllocatedCore} peuvent être considérés comme des jetons uniques permettant l'utilisation
+ * des services proposés par le {@link PhysicalResourcesProvider}.
+ * 
+ * @author Daniel RADEAU
+ *
+ */
+
 public class PhysicalResourcesProvider 
 extends 	AbstractComponent
 implements	PhysicalResourcesProviderManagementI,
@@ -69,7 +93,7 @@ ComputerStateDataConsumerI
 
 	protected Map<String, ComputerStaticStateI> computerStaticStates;
 	protected Map<String, ComputerDynamicStateI> computerDynamicStates;
-
+	
 	public PhysicalResourcesProvider(
 			String uri,
 			String physicalResourceProviderManagementInboundPortURI,
@@ -77,6 +101,12 @@ ComputerStateDataConsumerI
 			String physicalResourceProviderServicesInboundPortURI) throws Exception
 	{
 		super(2, 1);
+		
+		assert uri != null;
+		assert physicalResourceProviderManagementInboundPortURI != null;
+		assert physicalResourceProviderRequestingInboundPortURI != null;
+		assert physicalResourceProviderServicesInboundPortURI != null;
+		
 		physicalResourcesProvider = new ComponentDataNode(uri)
 				.addPort(physicalResourceProviderManagementInboundPortURI)
 				.addPort(physicalResourceProviderRequestingInboundPortURI)
@@ -117,7 +147,7 @@ ComputerStateDataConsumerI
 						this);
 		addPort(prpsip);
 		prpsip.publishPort();
-
+		
 		computerStaticStates = new HashMap<>();
 		computerDynamicStates = new HashMap<>();
 	}
@@ -139,6 +169,8 @@ ComputerStateDataConsumerI
 	 */
 
 	protected int computerAvailableCores(String computerURI) throws Exception {
+		assert computerURI != null; 
+		
 		ComponentDataNode computerDataNode = physicalResourcesProvider.findByURI(computerURI);
 		String 	cdsdipURI = computerDataNode.getPortLike(Tag.COMPUTER_DYNAMIC_STATE_DATA_INBOUND_PORT),
 				cdsdopURI = computerDataNode.getPortConnectedTo(cdsdipURI);
@@ -152,7 +184,7 @@ ComputerStateDataConsumerI
 
 		for ( int pi = 0; pi < cr.length; pi++ )
 			computerAvailableCores += processorAvailableCores(cr[pi]);
-
+		
 		return computerAvailableCores;
 	}
 
@@ -165,6 +197,8 @@ ComputerStateDataConsumerI
 	 */
 
 	protected int processorAvailableCores(boolean[] coreReservations) throws Exception {
+		assert coreReservations != null;
+		
 		int processorAvailableCores = 0;
 
 		for ( int ci = 0; ci < coreReservations.length; ci++ )
@@ -183,7 +217,10 @@ ComputerStateDataConsumerI
 	 * @throws Exception
 	 */
 
-	protected boolean hasAvailableCoresFromComputer(String computerURI, int wanted) throws Exception {		
+	protected boolean hasAvailableCoresFromComputer(String computerURI, int wanted) throws Exception {
+		assert computerURI != null;
+		assert wanted >= 0;
+		
 		return ( wanted <= computerAvailableCores(computerURI) );
 	}
 
@@ -197,6 +234,8 @@ ComputerStateDataConsumerI
 	 */
 
 	protected String findAvailableComputerForCoreAllocation(int cores) throws Exception {
+		assert cores >= 0;
+		
 		String computerURI = null;
 
 		for ( String cURI : physicalResourcesProvider.getURIsLike(Tag.COMPUTER) ) {
@@ -214,6 +253,8 @@ ComputerStateDataConsumerI
 
 	@Override
 	public void connectComputer(ComputerPortsDataI cpd) throws Exception {
+		assert cpd != null;
+		
 		String 	computerURI = cpd.getUri(),
 				csipURI = cpd.getComputerServicesInboundPort(),
 				cssdipURI = cpd.getComputerStaticStateDataInboundPort(),
@@ -440,14 +481,14 @@ ComputerStateDataConsumerI
 	 * @throws Exception
 	 */
 
-	protected void coreFrenquencyVariation(String processorURI, Integer coreNo, Variation variation) throws Exception {
+	protected Integer coreFrenquencyVariation(String processorURI, Integer coreNo, Variation variation) throws Exception {
 		ComponentDataNode 	pdn = physicalResourcesProvider.findByURI(processorURI),
-				cptdn = (ComponentDataNode) pdn.parents.toArray()[0];
+							cptdn = (ComponentDataNode) pdn.parents.toArray()[0];
 		String				computerURI = cptdn.uri,
-				pmipURI = pdn.getPortLike("pmibp"),
-				piipURI = pdn.getPortLike("piibp"),
-				pmopURI = pdn.getPortConnectedTo(pmipURI),
-				piopURI = pdn.getPortConnectedTo(piipURI);	
+							pmipURI = pdn.getPortLike("pmibp"),
+							piipURI = pdn.getPortLike("piibp"),
+							pmopURI = pdn.getPortConnectedTo(pmipURI),
+							piopURI = pdn.getPortConnectedTo(piipURI);	
 		ComputerStaticStateI css = computerStaticStates.get(computerURI);
 		ProcessorManagementOutboundPort pmop = (ProcessorManagementOutboundPort) findPortFromURI(pmopURI);
 		ProcessorIntrospectionOutboundPort piop = (ProcessorIntrospectionOutboundPort) findPortFromURI(piopURI);
@@ -463,7 +504,7 @@ ComputerStateDataConsumerI
 		else {
 			if ( LOGGING )
 				logMessage("The variation (" + variation + ") used isn't acceptable");
-			return;
+			return null;
 		}
 
 		if ( !css.getProcessorURIs().values().contains(processorURI) )
@@ -492,13 +533,13 @@ ComputerStateDataConsumerI
 		if ( index >= admissibleFrequencies.size() ) {
 			if ( LOGGING )
 				logMessage("On processor ["+ processorURI +"], the core (" + coreNo + ") frequency cannot be more increased");
-			return;
+			return frequency;
 		}
 		
 		if ( index < 0 ) {
 			if ( LOGGING )
 				logMessage("On processor ["+ processorURI +"], the core (" + coreNo + ") frequency cannot be more decreased");
-			return;
+			return frequency;
 		}
 
 		if ( !piop.isCurrentlyPossibleFrequencyForCore(coreNo, admissibleFrequencies.get(index)) ) {
@@ -536,7 +577,7 @@ ComputerStateDataConsumerI
 
 		verifyFrenquencyStepping(computerURI, processorURI, coreNo, admissibleFrequencies, index, variation);
 		pmop.setCoreFrequency(coreNo, admissibleFrequencies.get(index));
-
+		return admissibleFrequencies.get(index);
 	}
 
 	/**
@@ -548,7 +589,7 @@ ComputerStateDataConsumerI
 	 * @throws Exception
 	 */
 
-	protected void processorFrenquencyVariation(String processorURI, Variation variation) throws Exception {
+	protected Integer[] processorFrenquencyVariation(String processorURI, Variation variation) throws Exception {
 
 		ComponentDataNode 	pdn = physicalResourcesProvider.findByURI(processorURI),
 				cptdn = (ComponentDataNode) pdn.parents.toArray()[0];
@@ -572,12 +613,14 @@ ComputerStateDataConsumerI
 		else {
 			if ( LOGGING )
 				logMessage("The variation (" + variation + ") used isn't acceptable");
-			return;
+			return null;
 		}
 
 		if ( !css.getProcessorURIs().values().contains(processorURI) )
 			throw new Exception("The computer [" + computerURI + "] doesn't contains the processor [" + processorURI + "]");
 
+		Integer[] processorFrequencies = new Integer[pss.getNumberOfCores()];
+		
 		for ( int coreNo = 0; coreNo < pss.getNumberOfCores(); coreNo++ ) {
 
 			frequency = pds.getCurrentCoreFrequency(coreNo);
@@ -595,13 +638,19 @@ ComputerStateDataConsumerI
 			if ( index < 0 )
 				throw new Exception("The current frenquency ("+ frequency +") doesn't belong to admissible frenquencies ("+ admissibleFrequencies +")");
 
+			processorFrequencies[coreNo] = admissibleFrequencies.get(index);
+			
 			index += step;
 
 			if (verifyFrenquencyStepping(computerURI, processorURI, coreNo, admissibleFrequencies, index, variation) == Variation.STAGNATED)
 				continue;
 
+			processorFrequencies[coreNo] = admissibleFrequencies.get(index);
+			
 			pmop.setCoreFrequency(coreNo, admissibleFrequencies.get(index));
 		}
+		
+		return processorFrequencies;
 	}
 
 	/**
@@ -667,14 +716,15 @@ ComputerStateDataConsumerI
 
 	@Override
 	public boolean isLocal(Object o) throws Exception {
+		assert o != null;
 		return physicalResourcesProvider.findByURI( ((AllocatedCore) o).processorURI) != null;
 	}
 
 	@Override
 	@Ring
-	public void increaseCoreFrenquency(AllocatedCore ac) throws Exception {
+	public Integer increaseCoreFrenquency(AllocatedCore ac) throws Exception {
 		if ( isLocal(ac) )
-			coreFrenquencyVariation(ac.processorURI, ac.coreNo, Variation.INCREASED);
+			return coreFrenquencyVariation(ac.processorURI, ac.coreNo, Variation.INCREASED);
 		else {
 			String	prpropURI = physicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 			
@@ -684,16 +734,16 @@ ComputerStateDataConsumerI
 			}
 			
 			PhysicalResourcesProviderRequestingOutboundPort prprop = (PhysicalResourcesProviderRequestingOutboundPort) findPortFromURI(prpropURI);
-			prprop.increaseCoreFrenquency(physicalResourcesProvider.uri, ac);
+			return prprop.increaseCoreFrenquency(physicalResourcesProvider.uri, ac);
 			
 		}
 	}
 
 	@Override
 	@Ring
-	public void decreaseCoreFrenquency(AllocatedCore ac) throws Exception {
+	public Integer decreaseCoreFrenquency(AllocatedCore ac) throws Exception {
 		if ( isLocal(ac) )
-			coreFrenquencyVariation(ac.processorURI, ac.coreNo, Variation.DECREASED);
+			return coreFrenquencyVariation(ac.processorURI, ac.coreNo, Variation.DECREASED);
 		else {
 			String	prpropURI = physicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 
@@ -703,15 +753,15 @@ ComputerStateDataConsumerI
 			}
 
 			PhysicalResourcesProviderRequestingOutboundPort prprop = (PhysicalResourcesProviderRequestingOutboundPort) findPortFromURI(prpropURI);
-			prprop.decreaseCoreFrenquency(physicalResourcesProvider.uri, ac);
+			return prprop.decreaseCoreFrenquency(physicalResourcesProvider.uri, ac);
 		}
 	}
 
 	@Override
 	@Ring
-	public void increaseProcessorFrenquency(AllocatedCore ac) throws Exception {
+	public Integer[] increaseProcessorFrenquency(AllocatedCore ac) throws Exception {
 		if ( isLocal(ac) )
-			processorFrenquencyVariation(ac.processorURI, Variation.INCREASED);
+			return processorFrenquencyVariation(ac.processorURI, Variation.INCREASED);
 		else {
 			String	prpropURI = physicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 
@@ -721,15 +771,15 @@ ComputerStateDataConsumerI
 			}
 
 			PhysicalResourcesProviderRequestingOutboundPort prprop = (PhysicalResourcesProviderRequestingOutboundPort) findPortFromURI(prpropURI);
-			prprop.increaseProcessorFrenquency(physicalResourcesProvider.uri, ac);
+			return prprop.increaseProcessorFrenquency(physicalResourcesProvider.uri, ac);
 		}
 	}
 
 	@Override
 	@Ring
-	public void decreaseProcessorFrenquency(AllocatedCore ac) throws Exception {
+	public Integer[] decreaseProcessorFrenquency(AllocatedCore ac) throws Exception {
 		if ( isLocal(ac) )
-			processorFrenquencyVariation(ac.processorURI, Variation.DECREASED);
+			return processorFrenquencyVariation(ac.processorURI, Variation.DECREASED);
 		else {
 			String	prpropURI = physicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 
@@ -739,19 +789,30 @@ ComputerStateDataConsumerI
 			}
 
 			PhysicalResourcesProviderRequestingOutboundPort prprop = (PhysicalResourcesProviderRequestingOutboundPort) findPortFromURI(prpropURI);
-			prprop.decreaseProcessorFrenquency(physicalResourcesProvider.uri, ac);
+			return prprop.decreaseProcessorFrenquency(physicalResourcesProvider.uri, ac);
 		}
 	}
 
 	@Override 
 	@Ring
-	public void increaseComputerFrenquency(AllocatedCore ac) throws Exception {		
+	public Integer[][] increaseComputerFrenquency(AllocatedCore ac) throws Exception {
+		
 		if ( isLocal(ac) ) {
 			ComponentDataNode lpdn = physicalResourcesProvider.findByURI(ac.processorURI);
 			ComponentDataNode cptdn = (ComponentDataNode) lpdn.parents.toArray()[0];
-
-			for (ComponentDataNode pdn : cptdn.children)
-				processorFrenquencyVariation(pdn.uri, Variation.INCREASED);
+			
+			Integer[][] computerFrequencies = null;
+			
+			int processorNo = 0;
+			for (ComponentDataNode pdn : cptdn.children) {
+				Integer[] processorFrequencies = processorFrenquencyVariation(pdn.uri, Variation.INCREASED);
+				if ( computerFrequencies == null )
+					computerFrequencies = new Integer[cptdn.children.size()][processorFrequencies.length];
+				computerFrequencies[processorNo++] = processorFrequencies;
+			}
+			
+			return computerFrequencies;
+			
 		} else {
 			String	prpropURI = physicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 
@@ -761,19 +822,29 @@ ComputerStateDataConsumerI
 			}
 
 			PhysicalResourcesProviderRequestingOutboundPort prprop = (PhysicalResourcesProviderRequestingOutboundPort) findPortFromURI(prpropURI);
-			prprop.increaseComputerFrenquency(physicalResourcesProvider.uri, ac);
+			return prprop.increaseComputerFrenquency(physicalResourcesProvider.uri, ac);
 		}
 	}
 
 	@Override
 	@Ring
-	public void decreaseComputerFrenquency(AllocatedCore ac) throws Exception {
+	public Integer[][] decreaseComputerFrenquency(AllocatedCore ac) throws Exception {
 		if ( isLocal(ac) ) {
 			ComponentDataNode lpdn = physicalResourcesProvider.findByURI(ac.processorURI);
 			ComponentDataNode cptdn = (ComponentDataNode) lpdn.parents.toArray()[0];
 
-			for (ComponentDataNode pdn : cptdn.children)
-				processorFrenquencyVariation(pdn.uri, Variation.DECREASED);
+			Integer[][] computerFrequencies = null;
+			
+			int processorNo = 0;
+			for (ComponentDataNode pdn : cptdn.children) {
+				Integer[] processorFrequencies = processorFrenquencyVariation(pdn.uri, Variation.DECREASED);
+				if ( computerFrequencies == null )
+					computerFrequencies = new Integer[cptdn.children.size()][processorFrequencies.length];
+				computerFrequencies[processorNo++] = processorFrequencies;
+			}
+			
+			return computerFrequencies;
+			
 		} else {
 			String	prpropURI = physicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 
@@ -783,17 +854,19 @@ ComputerStateDataConsumerI
 			}
 
 			PhysicalResourcesProviderRequestingOutboundPort prprop = (PhysicalResourcesProviderRequestingOutboundPort) findPortFromURI(prpropURI);
-			prprop.decreaseComputerFrenquency(physicalResourcesProvider.uri, ac);
+			return prprop.decreaseComputerFrenquency(physicalResourcesProvider.uri, ac);
 		}
 	}
 
 	@Override
 	public AllocatedCore[] allocateCores(Integer cores) throws Exception {
-		String computerURI = findAvailableComputerForCoreAllocation(cores);
-
-		if ( cores <= 0 )
+		assert cores >= 0;
+		
+		if ( cores == 0 )
 			throw new NoCoreException("No core available");
-
+		
+		String computerURI = findAvailableComputerForCoreAllocation(cores);
+		
 		if ( computerURI == null ) {
 
 			if ( LOGGING ) {
@@ -814,9 +887,13 @@ ComputerStateDataConsumerI
 
 		if ( LOGGING )
 			logMessage(	"On computer [" + computerURI + 
-					"], (" + cores + 
-					") cores are been allocated");
+					"], (" + acs.length + 
+					") core(s) are been allocated");
 
+		assert acs != null;
+		assert acs.length > 0;
+		assert acs.length == cores;
+		
 		return acs;
 	}
 
@@ -884,7 +961,7 @@ ComputerStateDataConsumerI
 
 	@Override
 	@Ring
-	public void releaseCores(AllocatedCore[] allocatedCores) throws Exception {
+	public AllocatedCore[] releaseCores(AllocatedCore[] allocatedCores) throws Exception {
 		List<AllocatedCore> notProvidedAllocated = new ArrayList<>();
 		List<AllocatedCore> providedAllocated = new ArrayList<>();
 		StringBuilder message = new StringBuilder();
@@ -897,6 +974,8 @@ ComputerStateDataConsumerI
 				message.append("\tOn physical resources provider [" + physicalResourcesProvider.uri + "], core (" + ac.coreNo + ") of processor [" + ac.processorURI + "] is released\n\t");
 			}
 		}
+		
+		List<AllocatedCore> released = new ArrayList<>();
 
 		if (providedAllocated.size() > 0) {
 			
@@ -926,6 +1005,9 @@ ComputerStateDataConsumerI
 				ComputerCoreReleasingOutboundPort ccrop = (ComputerCoreReleasingOutboundPort) this.findPortFromURI(ccropURI);
 				ccrop.releaseCores(toReleaseLocally);
 				
+				for (AllocatedCore ac : toReleaseLocally)
+					released.add(ac);
+				
 			}
 
 			if ( LOGGING )
@@ -951,14 +1033,24 @@ ComputerStateDataConsumerI
 			}
 			
 			PhysicalResourcesProviderRequestingOutboundPort prprop = (PhysicalResourcesProviderRequestingOutboundPort) findPortFromURI(prpropURI);
-			prprop.releaseCores(physicalResourcesProvider.uri, toReleaseElsewhere);
+			AllocatedCore[] releasedElsewhere = prprop.releaseCores(physicalResourcesProvider.uri, toReleaseElsewhere);
+			
+			for (AllocatedCore ac : releasedElsewhere)
+				released.add(ac);
 
 		}
+		
+		AllocatedCore[] trulyReleasedCore = new AllocatedCore[released.size()];
+		for ( int i = 0; i < released.size(); i++ ) {
+			trulyReleasedCore[i] = released.get(i);
+		}
+		
+		return trulyReleasedCore;
 
 	}
 
 	@Override
-	public void increaseCoreFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
+	public Integer increaseCoreFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
 				
 		if (requesterUri == physicalResourcesProvider.uri) {
 			if ( LOGGING )
@@ -966,7 +1058,7 @@ ComputerStateDataConsumerI
 			throw new OrphaneAllocatedCoreException("Complete physical resources providers ring loops without found the allocated core owner");
 		} else {
 			if ( isLocal(ac) ) {
-				increaseCoreFrenquency(ac);
+				return increaseCoreFrenquency(ac);
 			} else {
 				String	prpropURI = physicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 
@@ -976,14 +1068,14 @@ ComputerStateDataConsumerI
 				}
 
 				PhysicalResourcesProviderRequestingOutboundPort prprop = (PhysicalResourcesProviderRequestingOutboundPort) findPortFromURI(prpropURI);
-				prprop.increaseCoreFrenquency(requesterUri, ac);
+				return prprop.increaseCoreFrenquency(requesterUri, ac);
 			}
 		}
 
 	}
 
 	@Override
-	public void decreaseCoreFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
+	public Integer decreaseCoreFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
 
 		if (requesterUri == physicalResourcesProvider.uri) {
 			if ( LOGGING )
@@ -991,7 +1083,7 @@ ComputerStateDataConsumerI
 			throw new OrphaneAllocatedCoreException("Complete physical resources providers ring loops without found the allocated core owner");
 		} else {
 			if ( isLocal(ac) ) {
-				decreaseCoreFrenquency(ac);
+				return decreaseCoreFrenquency(ac);
 			} else {
 				String	prpropURI = physicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 
@@ -1001,14 +1093,14 @@ ComputerStateDataConsumerI
 				}
 
 				PhysicalResourcesProviderRequestingOutboundPort prprop = (PhysicalResourcesProviderRequestingOutboundPort) findPortFromURI(prpropURI);
-				prprop.decreaseCoreFrenquency(requesterUri, ac);
+				return prprop.decreaseCoreFrenquency(requesterUri, ac);
 			}
 		}
 
 	}
 
 	@Override
-	public void increaseProcessorFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
+	public Integer[] increaseProcessorFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
 
 		if (requesterUri == physicalResourcesProvider.uri) {
 			if ( LOGGING )
@@ -1016,7 +1108,7 @@ ComputerStateDataConsumerI
 			throw new OrphaneAllocatedCoreException("Complete physical resources providers ring loops without found the allocated core owner");
 		} else {
 			if ( isLocal(ac) ) {
-				increaseProcessorFrenquency(ac);
+				return increaseProcessorFrenquency(ac);
 			} else {
 				String	prpropURI = physicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 
@@ -1026,14 +1118,14 @@ ComputerStateDataConsumerI
 				}
 
 				PhysicalResourcesProviderRequestingOutboundPort prprop = (PhysicalResourcesProviderRequestingOutboundPort) findPortFromURI(prpropURI);
-				prprop.increaseProcessorFrenquency(requesterUri, ac);
+				return prprop.increaseProcessorFrenquency(requesterUri, ac);
 			}
 		}
 
 	}
 
 	@Override
-	public void decreaseProcessorFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
+	public Integer[] decreaseProcessorFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
 
 		if (requesterUri == physicalResourcesProvider.uri) {
 			if ( LOGGING )
@@ -1041,7 +1133,7 @@ ComputerStateDataConsumerI
 			throw new OrphaneAllocatedCoreException("Complete physical resources providers ring loops without found the allocated core owner");
 		} else {
 			if ( isLocal(ac) ) {
-				decreaseProcessorFrenquency(ac);
+				return decreaseProcessorFrenquency(ac);
 			} else {
 				String	prpropURI = physicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 
@@ -1051,14 +1143,14 @@ ComputerStateDataConsumerI
 				}
 
 				PhysicalResourcesProviderRequestingOutboundPort prprop = (PhysicalResourcesProviderRequestingOutboundPort) findPortFromURI(prpropURI);
-				prprop.decreaseProcessorFrenquency(requesterUri, ac);
+				return prprop.decreaseProcessorFrenquency(requesterUri, ac);
 			}
 		}
 
 	}
 
 	@Override
-	public void increaseComputerFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
+	public Integer[][] increaseComputerFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
 		
 		if (requesterUri == physicalResourcesProvider.uri) {
 			if ( LOGGING )
@@ -1066,7 +1158,7 @@ ComputerStateDataConsumerI
 			throw new OrphaneAllocatedCoreException("Complete physical resources providers ring loops without found the allocated core owner");
 		} else {
 			if ( isLocal(ac) ) {
-				increaseComputerFrenquency(ac);
+				return increaseComputerFrenquency(ac);
 			} else {
 				String	prpropURI = physicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 
@@ -1076,7 +1168,7 @@ ComputerStateDataConsumerI
 				}
 
 				PhysicalResourcesProviderRequestingOutboundPort prprop = (PhysicalResourcesProviderRequestingOutboundPort) findPortFromURI(prpropURI);
-				prprop.increaseComputerFrenquency(requesterUri, ac);
+				return prprop.increaseComputerFrenquency(requesterUri, ac);
 			}
 		}
 
@@ -1084,7 +1176,7 @@ ComputerStateDataConsumerI
 
 	@Override 
 	@Ring
-	public void decreaseComputerFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
+	public Integer[][] decreaseComputerFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
 
 		if (requesterUri == physicalResourcesProvider.uri) {
 			if ( LOGGING )
@@ -1092,7 +1184,7 @@ ComputerStateDataConsumerI
 			throw new OrphaneAllocatedCoreException("Complete physical resources providers ring loops without found the allocated core owner");
 		} else {
 			if ( isLocal(ac) ) {
-				decreaseComputerFrenquency(ac);
+				return decreaseComputerFrenquency(ac);
 			} else {
 				String	prpropURI = physicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 
@@ -1102,14 +1194,14 @@ ComputerStateDataConsumerI
 				}
 
 				PhysicalResourcesProviderRequestingOutboundPort prprop = (PhysicalResourcesProviderRequestingOutboundPort) findPortFromURI(prpropURI);
-				prprop.decreaseComputerFrenquency(requesterUri, ac);
+				return prprop.decreaseComputerFrenquency(requesterUri, ac);
 			}
 		}
 
 	}
 
 	@Override
-	@Ring // TODO
+	@Ring
 	public AllocatedCore[] allocateCores(String requesterUri, AllocatedCore[] acs, Integer cores) throws Exception {
 		if (requesterUri == physicalResourcesProvider.uri) {
 			if ( LOGGING )
@@ -1146,8 +1238,8 @@ ComputerStateDataConsumerI
 	}
 
 	@Override
-	@Ring // TODO
-	public void releaseCores(String requesterUri, AllocatedCore[] allocatedCores) throws Exception {
+	@Ring
+	public AllocatedCore[] releaseCores(String requesterUri, AllocatedCore[] allocatedCores) throws Exception {
 		if (requesterUri == physicalResourcesProvider.uri) {
 			if ( LOGGING )
 				logMessage("All physical resources providers has been requested. Unfortunately, the allocate core seems orphane.");
@@ -1166,6 +1258,8 @@ ComputerStateDataConsumerI
 				}
 			}
 
+			List<AllocatedCore> released = new ArrayList<>();
+			
 			if (providedAllocated.size() > 0) {
 				ComponentDataNode 	pdn = physicalResourcesProvider.findByURI(providedAllocated.get(0).processorURI);
 				ComponentDataNode 	cptdn = (ComponentDataNode) pdn.parents.toArray()[0];
@@ -1181,6 +1275,9 @@ ComputerStateDataConsumerI
 				ComputerCoreReleasingOutboundPort ccrop = (ComputerCoreReleasingOutboundPort) this.findPortFromURI(ccropURI);
 				ccrop.releaseCores(toReleaseLocally);
 
+				for (AllocatedCore ac : toReleaseLocally)
+					released.add(ac);
+				
 				if ( LOGGING )
 					logMessage(message.toString());
 			}
@@ -1204,9 +1301,20 @@ ComputerStateDataConsumerI
 				}
 				
 				PhysicalResourcesProviderRequestingOutboundPort prprop = (PhysicalResourcesProviderRequestingOutboundPort) findPortFromURI(prpropURI);
-				prprop.releaseCores(physicalResourcesProvider.uri, toReleaseElsewhere);
+				AllocatedCore[] releasedElsewhere = prprop.releaseCores(physicalResourcesProvider.uri, toReleaseElsewhere);
+				
+				for (AllocatedCore ac : releasedElsewhere)
+					released.add(ac);
 
 			}
+			
+			AllocatedCore[] trulyReleasedCore = new AllocatedCore[released.size()];
+			for ( int i = 0; i < released.size(); i++ ) {
+				trulyReleasedCore[i] = released.get(i);
+			}
+			
+			return trulyReleasedCore;
+			
 		}
 	}
 

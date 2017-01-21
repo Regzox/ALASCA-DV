@@ -21,7 +21,7 @@ public class ExponentialAverage implements ExponentialAverageI {
 		assert weight < 1 && weight > 0;
 		
 		this.weight = weight;
-		this.average = null;
+		this.average = new Duration(0, 0);
 	}
 	
 	public double getWeight() {

@@ -198,6 +198,9 @@ public class Dispatcher extends AbstractComponent
 		rsopURIs.add(rsopURI);
 		System.out.println(rsopURI);
 		
+		if ( !offeredInterfaces.contains(RequestNotificationI.class))
+			addOfferedInterface(RequestNotificationI.class);
+		
 		String rnipURI = generateURI(Tag.REQUEST_NOTIFICATION_INBOUND_PORT);
 		RequestNotificationInboundPort rnip = new RequestNotificationInboundPort(rnipURI, this);
 		addPort(rnip);
@@ -350,7 +353,20 @@ public class Dispatcher extends AbstractComponent
 	public void tryToPerformApplicationVMDisconnection() throws Exception {
 		Vector<String> terminated = new Vector<>();
 		
+		if ( terminating == null )
+			throw new Exception("Terminating is null");
+		
 		for (String rsopURI : terminating) {
+			
+			if (rsopURI == null)
+				throw new Exception("rsopURI is null");
+			
+			if (pendings == null)
+				throw new Exception("pendings is null");
+			
+			if (pendings.get(rsopURI) == null)
+				throw new Exception("pendings.get(rsopURI) is null");
+			
 			if (pendings.get(rsopURI).size() == 0) {
 				terminated.add(rsopURI);
 			}
@@ -364,9 +380,7 @@ public class Dispatcher extends AbstractComponent
 			terminating.remove(rsopURI);
 			exponentialAverages.remove(rsopURI);
 			rsop.doDisconnection();
-			rsop.unpublishPort();
-			removePort(rsop);
-			rsop.destroyPort();
+			rsop.destroyPort();			
 			
 			int index = rsopURIs.indexOf(rsopURI);
 			rsopURIs.remove(index);			
@@ -481,7 +495,16 @@ public class Dispatcher extends AbstractComponent
 	}
 	
 	public DispatcherDynamicState getDynamicState() {
-		return new DispatcherDynamicState(uri, exponentialAverages, pendings, performed);
+		final Vector<String> fterminating = new Vector<>(terminating);
+		final Map<String, List<String>> fpendings = new HashMap<>(pendings);
+		final Map<String, Integer> fperformed = new HashMap<>(performed);
+		final Map<String, ExponentialAverage> fexponentialAverages = new HashMap<>(exponentialAverages);
+		for (String rsopURI : fterminating) {
+			fpendings.remove(rsopURI);
+			fperformed.remove(rsopURI);
+			fexponentialAverages.remove(rsopURI);
+		}
+		return new DispatcherDynamicState(uri, fexponentialAverages, fpendings, fperformed);
 	}
 	
 	public void sendDynamicState() throws Exception {

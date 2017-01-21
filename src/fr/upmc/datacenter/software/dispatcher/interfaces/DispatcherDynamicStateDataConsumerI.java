@@ -13,8 +13,9 @@ public interface DispatcherDynamicStateDataConsumerI {
 	 * Accepte la donnée émise par un dispatcher (L'identité du sipatcher est comprise dans les data)
 	 * 
 	 * @param data
+	 * @throws Exception 
 	 */
 	
-	void acceptDispatcherDynamicStateData(DispatcherDynamicStateI data);
+	void acceptDispatcherDynamicStateData(DispatcherDynamicStateI data) throws Exception;
 	
 }

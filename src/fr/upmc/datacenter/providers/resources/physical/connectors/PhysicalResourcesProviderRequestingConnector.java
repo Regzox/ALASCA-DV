@@ -15,33 +15,33 @@ implements	PhysicalResourcesProviderRequestingI
 	}
 	
 	@Override
-	public void increaseCoreFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
-		( (PhysicalResourcesProviderRequestingI) this.offering ).increaseCoreFrenquency(requesterUri, ac);
+	public Integer increaseCoreFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
+		return ( (PhysicalResourcesProviderRequestingI) this.offering ).increaseCoreFrenquency(requesterUri, ac);
 	}
 
 	@Override
-	public void decreaseCoreFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
-		( (PhysicalResourcesProviderRequestingI) this.offering ).decreaseCoreFrenquency(requesterUri, ac);
+	public Integer decreaseCoreFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
+		return ( (PhysicalResourcesProviderRequestingI) this.offering ).decreaseCoreFrenquency(requesterUri, ac);
 	}
 
 	@Override
-	public void increaseProcessorFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
-		( (PhysicalResourcesProviderRequestingI) this.offering ).increaseProcessorFrenquency(requesterUri, ac);
+	public Integer[] increaseProcessorFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
+		return ( (PhysicalResourcesProviderRequestingI) this.offering ).increaseProcessorFrenquency(requesterUri, ac);
 	}
 
 	@Override
-	public void decreaseProcessorFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
-		( (PhysicalResourcesProviderRequestingI) this.offering ).decreaseProcessorFrenquency(requesterUri, ac);
+	public Integer[] decreaseProcessorFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
+		return ( (PhysicalResourcesProviderRequestingI) this.offering ).decreaseProcessorFrenquency(requesterUri, ac);
 	}
 
 	@Override
-	public void increaseComputerFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
-		( (PhysicalResourcesProviderRequestingI) this.offering ).increaseComputerFrenquency(requesterUri, ac);
+	public Integer[][] increaseComputerFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
+		return ( (PhysicalResourcesProviderRequestingI) this.offering ).increaseComputerFrenquency(requesterUri, ac);
 	}
 
 	@Override
-	public void decreaseComputerFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
-		( (PhysicalResourcesProviderRequestingI) this.offering ).decreaseComputerFrenquency(requesterUri, ac);
+	public Integer[][] decreaseComputerFrenquency(String requesterUri, AllocatedCore ac) throws Exception {
+		return ( (PhysicalResourcesProviderRequestingI) this.offering ).decreaseComputerFrenquency(requesterUri, ac);
 	}
 
 	@Override
@@ -50,8 +50,8 @@ implements	PhysicalResourcesProviderRequestingI
 	}
 
 	@Override
-	public void releaseCores(String requesterUri, AllocatedCore[] allocatedCores) throws Exception {
-		( (PhysicalResourcesProviderRequestingI) this.offering ).releaseCores(requesterUri, allocatedCores);
+	public AllocatedCore[] releaseCores(String requesterUri, AllocatedCore[] allocatedCores) throws Exception {
+		return ( (PhysicalResourcesProviderRequestingI) this.offering ).releaseCores(requesterUri, allocatedCores);
 	}
 
 }

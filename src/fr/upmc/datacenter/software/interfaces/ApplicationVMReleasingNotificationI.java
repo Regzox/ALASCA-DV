@@ -1,5 +1,8 @@
 package fr.upmc.datacenter.software.interfaces;
 
+import fr.upmc.components.interfaces.OfferedI;
+import fr.upmc.components.interfaces.RequiredI;
+
 /**
  * Interface de notification des libérations d'AVM
  * 
@@ -7,7 +10,7 @@ package fr.upmc.datacenter.software.interfaces;
  *
  */
 
-public interface ApplicationVMReleasingNotificationI {
+public interface ApplicationVMReleasingNotificationI extends RequiredI, OfferedI {
 
 	/**
 	 * Permet de notifier de la libaération d'un AVM

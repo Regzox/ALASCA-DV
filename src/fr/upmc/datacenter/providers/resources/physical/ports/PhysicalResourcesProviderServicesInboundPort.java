@@ -24,90 +24,84 @@ implements	PhysicalResourcesProviderServicesI
 	}
 
 	@Override
-	public void increaseCoreFrenquency(AllocatedCore ac) throws Exception {
+	public Integer increaseCoreFrenquency(AllocatedCore ac) throws Exception {
 		final PhysicalResourcesProvider prp = (PhysicalResourcesProvider) this.owner;
 
-		prp.handleRequestSync(new ComponentService<Void>() {
+		return prp.handleRequestSync(new ComponentService<Integer>() {
 
 			@Override
-			public Void call() throws Exception {
-				prp.increaseCoreFrenquency(ac);
-				return null;
+			public Integer call() throws Exception {
+				return prp.increaseCoreFrenquency(ac);
 			}
 
 		});
 	}
 
 	@Override
-	public void decreaseCoreFrenquency(AllocatedCore ac) throws Exception {
+	public Integer decreaseCoreFrenquency(AllocatedCore ac) throws Exception {
 		final PhysicalResourcesProvider prp = (PhysicalResourcesProvider) this.owner;
 
-		prp.handleRequestSync(new ComponentService<Void>() {
+		return prp.handleRequestSync(new ComponentService<Integer>() {
 
 			@Override
-			public Void call() throws Exception {
-				prp.decreaseCoreFrenquency(ac);
-				return null;
+			public Integer call() throws Exception {
+				return prp.decreaseCoreFrenquency(ac);
 			}
 
 		});
 	}
 
 	@Override
-	public void increaseProcessorFrenquency(AllocatedCore ac) throws Exception {
+	public Integer[] increaseProcessorFrenquency(AllocatedCore ac) throws Exception {
 		final PhysicalResourcesProvider prp = (PhysicalResourcesProvider) this.owner;
 
-		prp.handleRequestSync(new ComponentService<Void>() {
+		return prp.handleRequestSync(new ComponentService<Integer[]>() {
 
 			@Override
-			public Void call() throws Exception {
-				prp.increaseProcessorFrenquency(ac);
-				return null;
+			public Integer[] call() throws Exception {
+				return prp.increaseProcessorFrenquency(ac);
 			}
 
 		});
 	}
 
 	@Override
-	public void decreaseProcessorFrenquency(AllocatedCore ac) throws Exception {
+	public Integer[] decreaseProcessorFrenquency(AllocatedCore ac) throws Exception {
 		final PhysicalResourcesProvider prp = (PhysicalResourcesProvider) this.owner;
 
-		prp.handleRequestSync(new ComponentService<Void>() {
+		return prp.handleRequestSync(new ComponentService<Integer[]>() {
 
 			@Override
-			public Void call() throws Exception {
-				prp.decreaseProcessorFrenquency(ac);
-				return null;
+			public Integer[] call() throws Exception {
+				return prp.decreaseProcessorFrenquency(ac);
 			}
 
 		});
 	}
 
 	@Override
-	public void increaseComputerFrenquency(AllocatedCore ac) throws Exception {
+	public Integer[][] increaseComputerFrenquency(AllocatedCore ac) throws Exception {
 		final PhysicalResourcesProvider prp = (PhysicalResourcesProvider) this.owner;
 
-		prp.handleRequestSync(new ComponentService<Void>() {
+		return prp.handleRequestSync(new ComponentService<Integer[][]>() {
 
 			@Override
-			public Void call() throws Exception {
-				prp.increaseComputerFrenquency(ac);
-				return null;
+			public Integer[][] call() throws Exception {
+				return prp.increaseComputerFrenquency(ac);
 			}
 
 		});
 	}
 
 	@Override
-	public void decreaseComputerFrenquency(AllocatedCore ac) throws Exception {
+	public Integer[][] decreaseComputerFrenquency(AllocatedCore ac) throws Exception {
 		final PhysicalResourcesProvider prp = (PhysicalResourcesProvider) this.owner;
 
-		prp.handleRequestSync(new ComponentService<Void>() {
+		return prp.handleRequestSync(new ComponentService<Integer[][]>() {
 
 			@Override
-			public Void call() throws Exception {
-				prp.decreaseComputerFrenquency(ac);
-				return null;
+			public Integer[][] call() throws Exception {
+				return prp.decreaseComputerFrenquency(ac);
 			}
 
 		});
@@ -142,15 +136,14 @@ implements	PhysicalResourcesProviderServicesI
 	}
 
 	@Override
-	public void releaseCores(AllocatedCore[] allocatedCores) throws Exception {
+	public AllocatedCore[] releaseCores(AllocatedCore[] allocatedCores) throws Exception {
 		final PhysicalResourcesProvider prp = (PhysicalResourcesProvider) this.owner;
 
-		prp.handleRequestSync(new ComponentService<Void>() {
+		return prp.handleRequestSync(new ComponentService<AllocatedCore[]>() {
 
 			@Override
-			public Void call() throws Exception {
-				prp.releaseCores(allocatedCores);
-				return null;
+			public AllocatedCore[] call() throws Exception {
+				return prp.releaseCores(allocatedCores);
 			}
 
 		});

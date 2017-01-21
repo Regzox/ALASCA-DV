@@ -32,113 +32,170 @@ import fr.upmc.datacenter.software.ports.CoreReleasingNotificationOutboundPort;
  */
 
 public class ApplicationVM 
-	extends 
-		fr.upmc.datacenter.software.applicationvm.ApplicationVM
-	implements 
-		ApplicationVMCoreReleasingI
+extends 
+fr.upmc.datacenter.software.applicationvm.ApplicationVM
+implements 
+ApplicationVMCoreReleasingI
 {
 	protected List<AllocatedCore> releasing;				// Liste des coeurs en cours de libération
 	protected CoreReleasingNotificationOutboundPort crnop;	// Port de notification des terminaison de coeurs
 	protected ApplicationVMCoreReleasingInboundPort crip;				// Port de demande de terminaison de coeurs
 
+	private static Object LOCK = new Object();
+
 	public ApplicationVM(	String vmURI,
-							String applicationVMManagementInboundPortURI,
-							String requestSubmissionInboundPortURI, 
-							String requestNotificationOutboundPortURI,
-							String coreReleasingInboundPortURI,
-							String coreReleasingNotificationOutboundPortURI) throws Exception 
+			String applicationVMManagementInboundPortURI,
+			String requestSubmissionInboundPortURI, 
+			String requestNotificationOutboundPortURI,
+			String coreReleasingInboundPortURI,
+			String coreReleasingNotificationOutboundPortURI) throws Exception 
 	{
 		super(	vmURI, 
 				applicationVMManagementInboundPortURI, 
 				requestSubmissionInboundPortURI,
 				requestNotificationOutboundPortURI );
 		releasing = new ArrayList<>();
-		
+
 		if (!offeredInterfaces.contains(ApplicationVMCoreReleasingI.class))
 			offeredInterfaces.add(ApplicationVMCoreReleasingI.class);
-		
+
 		crip = new ApplicationVMCoreReleasingInboundPort(	coreReleasingInboundPortURI, 
-												ApplicationVMCoreReleasingI.class, 
-												this);
+				ApplicationVMCoreReleasingI.class, 
+				this);
 		addPort(crip);
 		crip.publishPort();
-		
+
 		if (!requiredInterfaces.contains(CoreReleasingNotificationI.class))
 			requiredInterfaces.add(CoreReleasingNotificationI.class);
-		
+
 		crnop = new CoreReleasingNotificationOutboundPort(	coreReleasingNotificationOutboundPortURI, 
-															CoreReleasingNotificationI.class, 
-															this);
+				CoreReleasingNotificationI.class, 
+				this);
 		addPort(crnop);
 		crnop.publishPort();
-		
-		
+
+
 	}
 
 	protected void tryPerformCoreRelease() throws Exception {
-		
+
 		AllocatedCore allocatedCore = null;
+
+		if ( releasing == null ) {
+			throw new Exception("releasing is null");
+		}
+
 		
-		if (releasing.size() != 0)
-			allocatedCore = releasing.get(0);
-		else
-			return;
-		
-		/**
-		 * Vérification que le coeur à bien été placé en liste de libération et est bien en état en attente
-		 */
-		
-		Boolean isIdleCore = allocatedCoresIdleStatus.get(allocatedCore);
-		
-		if (releasing.contains(allocatedCore) && isIdleCore) {
+		synchronized (LOCK) {
+//			System.out.println("LOCKED");
 			
-			allocatedCoresIdleStatus.remove(allocatedCore);
+			if (releasing.size() == 0) { 
+				/** nothing to do **/
+//				System.out.println("NOTHING ...");
+			} else {
+//				System.out.println("WHAT ...");
+				allocatedCore = releasing.remove(0);
 
-			/**
-			 * Parcours des coeurs alloués à la recherche d'un coeur alloué appartenant au même processeur
-			 */
-
-			boolean hasAllocatedCoreOnTheSameProcessor = false;
-			for (AllocatedCore ac : allocatedCoresIdleStatus.keySet()) {
-				if (allocatedCore.processorURI.equals(ac.processorURI))
-					hasAllocatedCoreOnTheSameProcessor = true;
-			}
-
-			/**
-			 * Suppression des ports processeurs si il n'y a plus de coeurs alloués sur ce même processeur
-			 */
-
-			if (!hasAllocatedCoreOnTheSameProcessor) {
+				if ( allocatedCore == null ) {
+					System.out.println("releasing size : " + releasing.size());
+					for ( AllocatedCore ac : releasing) {
+						System.out.print(ac);
+						if (ac != null)
+							System.out.println(" -> " + ac.processorURI);
+					}
+					throw new Exception("allocatedCore is null");
+				}
 
 				/**
-				 * Pop des ports processeurs qui ne sont plus utilisés par l'AVM
+				 * Vérification que le coeur à bien été placé en liste de libération et est bien en état en attente
 				 */
-				ProcessorServicesOutboundPort psop = processorServicesPorts.remove(allocatedCore.processorURI);
-				ProcessorServicesNotificationInboundPort psnip = processorNotificationInboundPorts.remove(allocatedCore.processorURI);
 
-				psop.doDisconnection();
-//				psnip.doDisconnection(); <- Impossible de faire ça proprement, nécessite la surcharge de processor, donc de computer ...
+				Boolean isIdleCore = allocatedCoresIdleStatus.get(allocatedCore);
+
+				if ( isIdleCore == null ) {
+					System.out.println(allocatedCore);
+					if (allocatedCore != null)
+						System.out.println(allocatedCore.processorURI + "(" + allocatedCore.coreNo + ")");
+					System.out.println("allocatedCoresIdleStatus : ");
+					for (AllocatedCore ac : allocatedCoresIdleStatus.keySet()) {
+						System.out.println("\t" + ac.processorURI + "(" + ac.coreNo + ")" + " : " + allocatedCoresIdleStatus.get(ac) + " " + ac);
+					}
+					System.out.println("releasing : ");
+					for (AllocatedCore ac : releasing) {
+						System.out.println("\t" + ac.processorURI + "(" + ac.coreNo + ")" + " : " + allocatedCoresIdleStatus.get(ac) + " " + ac);
+					}
+					System.exit(-100); // TODO
+					throw new Exception("isIdleCore is null");
+				}		
+
+				//if (releasing.contains(allocatedCore) && isIdleCore) {
 				
-				/**
-				 * Destruction des ports détachés de l'AVM
-				 */
+				if ( isIdleCore ) {
 
-				psop.destroyPort();
-				psnip.destroyPort();
-			
+					try {
+						assert allocatedCoresIdleStatus.size() > 0;
+					
+						int size = allocatedCoresIdleStatus.size();
+						boolean removed = allocatedCoresIdleStatus.remove(allocatedCore);
+					
+						assert allocatedCoresIdleStatus.size() < size;
+						assert removed == true;
+					} catch (Exception e) {
+						e.printStackTrace();
+						System.exit(-1); // TODO
+					}
+					
+					 // GROS BUG PAS DE EQUAL MAIS DES COMPARAISONS D'URI POUR CHOISIR LES PROCESSEURS CAR LES ADRESSES MEMOIRES SONT DIFFERRENTES ENTRE LES THREADS
+
+					/**
+					 * Parcours des coeurs alloués à la recherche d'un coeur alloué appartenant au même processeur
+					 */
+
+					boolean hasAllocatedCoreOnTheSameProcessor = false;
+					for (AllocatedCore ac : allocatedCoresIdleStatus.keySet()) {
+						if (allocatedCore.processorURI.equals(ac.processorURI))
+							hasAllocatedCoreOnTheSameProcessor = true;
+					}
+
+					/**
+					 * Suppression des ports processeurs si il n'y a plus de coeurs alloués sur ce même processeur
+					 */
+
+					if (!hasAllocatedCoreOnTheSameProcessor) {
+
+						/**
+						 * Pop des ports processeurs qui ne sont plus utilisés par l'AVM
+						 */
+						ProcessorServicesOutboundPort psop = processorServicesPorts.remove(allocatedCore.processorURI);
+						ProcessorServicesNotificationInboundPort psnip = processorNotificationInboundPorts.remove(allocatedCore.processorURI);
+
+						psop.doDisconnection();
+						//				psnip.doDisconnection(); <- Impossible de faire ça proprement, nécessite la surcharge de processor, donc de computer ...
+
+						/**
+						 * Destruction des ports détachés de l'AVM
+						 */
+
+						psop.destroyPort();
+						psnip.destroyPort();
+
+					}
+
+//					/**
+//					 * Le coeurs est maintenant désalloué, il est supprimer de la liste des coeurs à libérer
+//					 */
+//
+//					releasing.remove(allocatedCore);
+
+					/**
+					 * Notification d'une libération de coeur
+					 */
+
+					crnop.notifyCoreReleasing(this.vmURI, allocatedCore);
+					
+				}
 			}
-
-			/**
-			 * Le coeurs est maintenant désalloué, il est supprimer de la liste des coeurs à libérer
-			 */
-
-			releasing.remove(allocatedCore);
-			
-			/**
-			 * Notification d'une libération de coeur
-			 */
-			
-			crnop.notifyCoreReleasing(this.vmURI, allocatedCore);
+//			System.out.println("UNLOCKED");
 		}
 		
 	}
@@ -150,9 +207,17 @@ public class ApplicationVM
 		/** 
 		 * Tentative complète de désallocation d'un coeur en status en attente
 		 */
+//		System.out.println("PRINT");
+//		for (AllocatedCore ac : allocatedCoresIdleStatus.keySet()) {
+//			System.out.println("\t" + ac.processorURI + "(" + ac.coreNo + ")" + " : " + allocatedCoresIdleStatus.get(ac));
+//		}
+		System.out.println(allocatedCoresIdleStatus.size() + " COEURS DANS L'AVM");
 
 		if (allocatedCore != null) {
-			releasing.add(allocatedCore);
+			if ( !releasing.contains(allocatedCore) )
+				releasing.add(allocatedCore);
+			else
+				logMessage("Releasing list already contains allocated core : " + allocatedCore);
 			tryPerformCoreRelease();
 			return;
 		}
@@ -161,26 +226,67 @@ public class ApplicationVM
 		 * Dans le cas où tous les coeurs sont occupés, il faut alors en choisir un au hasard pour le processus de libération.
 		 * Le relâchement doit être effectué moment de la terminaison de la tâche occupant le coeur.
 		 */
+
+		assert !releasing.contains(null);
+		assert !releasing.contains(allocatedCore);
 		
 		Random random = new Random(System.nanoTime());
-		Integer index = random.nextInt(allocatedCoresIdleStatus.size());
-		int i = 0;
 		
-		for (AllocatedCore ac : allocatedCoresIdleStatus.keySet()) {
-			if (i == index) {
-				allocatedCore = ac;
-				break;
+		while (releasing.contains(allocatedCore) || (allocatedCore == null) && !releasing.containsAll(allocatedCoresIdleStatus.keySet())) {
+			Integer index = random.nextInt(allocatedCoresIdleStatus.size());
+			int i = 0;
+			
+			for (AllocatedCore ac : allocatedCoresIdleStatus.keySet()) {
+				if (i++ == index) {
+					allocatedCore = ac;
+					break;
+				}
 			}
+	
+			
 		}
-
-		releasing.add(allocatedCore);		
+		
+//		System.out.println("RANDOMISATION SELECT");
+//		System.out.println(
+//				"releasing.contains(allocatedCore) : " + 
+//				releasing.contains(allocatedCore) +
+//				"\nallocatedCore == null : " +
+//				(allocatedCore == null) +
+//				"\n!releasing.containsAll(allocatedCoresIdleStatus.keySet()) : " +
+//				!releasing.containsAll(allocatedCoresIdleStatus.keySet()));
+		
+		if (allocatedCore == null) {
+			
+//			System.out.println("releasing : ");
+//			
+//			for ( AllocatedCore elt : releasing ) {
+//				System.out.println(elt + "\t");
+//				System.out.println(elt.processorURI + "\t");
+//				System.out.println(elt.coreNo + "\t");		
+//			}
+//			
+//			System.out.println("allocatedCoresIdleStatus : ");
+//			
+//			for ( AllocatedCore elt : allocatedCoresIdleStatus.keySet() ) {
+//				System.out.println(elt + "\t");
+//				System.out.println(elt.processorURI + "\t");
+//				System.out.println(elt.coreNo + "\t");		
+//			}
+//			
+//			System.err.println("allocatedCore == null");
+			//throw new NoCoreException("No core selected for the releasing");
+			logMessage("All cores are already on way the be released");
+		}
+		else
+			releasing.add(allocatedCore);
 	}
 
 	@Override
 	public void releaseCores(int cores) throws Exception {
-
+		assert cores >= 0;
+		
 		if (cores > allocatedCoresIdleStatus.size())
-			throw new Exception("To many cores wanted for releasing");
+			throw new Exception("To many cores wanted for releasing (" + cores + "/" + allocatedCoresIdleStatus.size() + ")");
 		for (int i = 0; i < cores; i++) {
 			releaseCore();
 		}
@@ -190,18 +296,18 @@ public class ApplicationVM
 	@Override
 	public void releaseMaximumCores() throws Exception {
 		Integer allocatedCoreCount = allocatedCoresIdleStatus.size();
-		
+
 		while (allocatedCoreCount > 0) {
 			releaseCore();
 			allocatedCoreCount--;
 		}
-		
+
 	}
 
 	@Override
 	public void endTask(TaskI t) throws Exception {
 		assert	t != null && this.isRunningTask(t) ;
-		
+
 		this.logMessage(this.vmURI + " terminates request " +
 				t.getRequest().getRequestURI()) ;
 		AllocatedCore ac = this.runningTasks.remove(t.getTaskURI()) ;
@@ -219,7 +325,7 @@ public class ApplicationVM
 			this.requestNotificationOutboundPort.
 			notifyRequestTermination(t.getRequest()) ;
 		}
-		
+
 		if (!this.taskQueue.isEmpty()) {
 			this.startTask() ;
 		}
@@ -266,6 +372,69 @@ public class ApplicationVM
 					this.processorNotificationInboundPorts.get(ac.processorURI) ;
 			p.executeTaskOnCoreAndNotify(t, ac.coreNo, np.getPortURI()) ;
 		}
+	}
+	
+	@Override
+	public void allocateCores(AllocatedCore[] allocatedCores) throws Exception {
+	
+//		for ( AllocatedCore elt : allocatedCores ) {
+//			System.out.println(elt + "\t");
+//			System.out.println(elt.processorURI + "\t");
+//			System.out.println(elt.coreNo + "\t");		
+//		}
+//		System.out.println();
+//		for ( AllocatedCore elt : allocatedCoresIdleStatus.keySet() ) {
+//			System.out.println(elt + "\t");
+//			System.out.println(elt.processorURI + "\t");
+//			System.out.println(elt.coreNo + "\t");		
+//		}
+		
+		/**
+		 * Le mécanisme mis en place ne doit pas produire l'allocation de coeurs déjà alloués.
+		 * Si c'est le cas nous somme alors dans une sorte d'êtat incohérent vis à vis des
+		 * composants gérant les ressources physiques et logiques. 
+		 */
+		
+		for (AllocatedCore ac :  allocatedCores) {
+			System.out.println("->" + ac.processorURI + "\t" + ac.coreNo);
+			for (AllocatedCore acd : allocatedCoresIdleStatus.keySet() )
+				if ( ac.processorURI.equals(acd.processorURI) && (ac.coreNo == acd.coreNo) ) {
+					StringBuilder sb = new StringBuilder();
+					
+					sb
+					.append("FATAL ERROR : Already allocated core is allocated ... doublons\n\n")
+					.append(ac).append("\t")
+					.append(ac.processorURI).append("\t")
+					.append(ac.coreNo).append("\n")
+					.append("are same\n")
+					.append(acd).append("\t")
+					.append(acd.processorURI).append("\t")
+					.append(acd.coreNo).append("\n\n");
+					
+					sb.append("Between : \n");
+					
+					for ( AllocatedCore elt : allocatedCores ) {
+						sb
+						.append(elt).append("\t")
+						.append(elt.processorURI).append("\t")
+						.append(elt.coreNo).append("\t\n");
+					}
+					
+					sb.append("and : \n");
+					
+					for ( AllocatedCore elt : allocatedCoresIdleStatus.keySet() ) {
+						sb
+						.append(elt).append("\t")
+						.append(elt.processorURI).append("\t")
+						.append(elt.coreNo).append("\t\n");
+					}
+					
+					System.err.println(sb.toString());
+					System.exit(-2);
+				}
+		}
+		
+		super.allocateCores(allocatedCores);
 	}
 
 }

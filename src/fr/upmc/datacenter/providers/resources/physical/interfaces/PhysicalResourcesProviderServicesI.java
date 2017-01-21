@@ -20,56 +20,62 @@ public interface PhysicalResourcesProviderServicesI extends OfferedI, RequiredI 
 	 * 
 	 * @param processorURI
 	 * @param coreNo
+	 * @return TODO
 	 * @throws Exception
 	 */
 	
-	public void increaseCoreFrenquency(AllocatedCore ac) throws Exception;
+	public Integer increaseCoreFrenquency(AllocatedCore ac) throws Exception;
 	
 	/**
 	 * Permet de diminuer la fréquence d'un coeur de processeur.
 	 * 
 	 * @param processorURI
 	 * @param coreNo
+	 * @return TODO
 	 * @throws Exception
 	 */
 	
-	public void decreaseCoreFrenquency(AllocatedCore ac) throws Exception;
+	public Integer decreaseCoreFrenquency(AllocatedCore ac) throws Exception;
 	
 	/**
 	 * Permet d'augmenter la fréquence d'un processeur entier.
 	 * 
 	 * @param processorURI
+	 * @return TODO
 	 * @throws Exception
 	 */
 	
-	public void increaseProcessorFrenquency(AllocatedCore ac) throws Exception;
+	public Integer[] increaseProcessorFrenquency(AllocatedCore ac) throws Exception;
 	
 	/**
 	 * Permet de diminuer la fréquence d'un processeur entier.
 	 * 
 	 * @param processorURI
+	 * @return TODO
 	 * @throws Exception
 	 */
 	
-	public void decreaseProcessorFrenquency(AllocatedCore ac) throws Exception;
+	public Integer[] decreaseProcessorFrenquency(AllocatedCore ac) throws Exception;
 	
 	/**
 	 * Permet de d'augmenter la fréquence d'un ordinateur entier.
 	 * 
 	 * @param computerURI
+	 * @return TODO
 	 * @throws Exception
 	 */
 	
-	public void increaseComputerFrenquency(AllocatedCore ac) throws Exception;
+	public Integer[][] increaseComputerFrenquency(AllocatedCore ac) throws Exception;
 	
 	/**
 	 * Permet de diminuer la fréquence d'un ordinateur entier.
 	 * 
 	 * @param computerURI
+	 * @return TODO
 	 * @throws Exception
 	 */
 	
-	public void decreaseComputerFrenquency(AllocatedCore ac) throws Exception;
+	public Integer[][] decreaseComputerFrenquency(AllocatedCore ac) throws Exception;
 
 	/**
 	 * Permet l'allocation d'un certain nombre de coeurs sur les ordinateurs disponibles.
@@ -95,9 +101,10 @@ public interface PhysicalResourcesProviderServicesI extends OfferedI, RequiredI 
 	 * Permet de la libération d'une liste de coeurs alloués.
 	 * 
 	 * @param allocatedCores
+	 * @return TODO
 	 * @throws Exception
 	 */
 	
-	public void releaseCores(AllocatedCore[] allocatedCores) throws Exception;
+	public AllocatedCore[] releaseCores(AllocatedCore[] allocatedCores) throws Exception;
 	
 }

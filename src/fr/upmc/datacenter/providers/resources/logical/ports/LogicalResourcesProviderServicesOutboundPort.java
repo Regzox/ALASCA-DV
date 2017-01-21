@@ -22,23 +22,23 @@ implements LogicalResourcesProviderServicesI
 	}
 
 	@Override
-	public void increaseApplicationVMFrequency(AllocatedApplicationVM avm) throws Exception {
-		( (LogicalResourcesProviderServicesI) this.connector ).increaseApplicationVMFrequency(avm);		
+	public Integer[] increaseApplicationVMFrequency(AllocatedApplicationVM avm) throws Exception {
+		return ( (LogicalResourcesProviderServicesI) this.connector ).increaseApplicationVMFrequency(avm);		
 	}
 
 	@Override
-	public void decreaseApplicationVMFrequency(AllocatedApplicationVM avm) throws Exception {
-		( (LogicalResourcesProviderServicesI) this.connector ).decreaseApplicationVMFrequency(avm);		
+	public Integer[] decreaseApplicationVMFrequency(AllocatedApplicationVM avm) throws Exception {
+		return ( (LogicalResourcesProviderServicesI) this.connector ).decreaseApplicationVMFrequency(avm);		
 	}
 
 	@Override
-	public void increaseApplicationVMCores(AllocatedApplicationVM avm, Integer coreCount) throws Exception {
-		( (LogicalResourcesProviderServicesI) this.connector ).increaseApplicationVMCores(avm, coreCount);
+	public Integer increaseApplicationVMCores(AllocatedApplicationVM avm, Integer coreCount) throws Exception {
+		return ( (LogicalResourcesProviderServicesI) this.connector ).increaseApplicationVMCores(avm, coreCount);
 	}
 
 	@Override
-	public void decreaseApplicationVMCores(AllocatedApplicationVM avm, Integer coreCount) throws Exception {
-		( (LogicalResourcesProviderServicesI) this.connector ).decreaseApplicationVMCores(avm, coreCount);		
+	public Integer decreaseApplicationVMCores(AllocatedApplicationVM avm, Integer coreCount) throws Exception {
+		return ( (LogicalResourcesProviderServicesI) this.connector ).decreaseApplicationVMCores(avm, coreCount);		
 	}
 
 	@Override
@@ -47,8 +47,8 @@ implements LogicalResourcesProviderServicesI
 	}
 
 	@Override
-	public void releaseApplicationVMs(AllocatedApplicationVM[] avms) throws Exception {
-		( (LogicalResourcesProviderServicesI) this.connector ).releaseApplicationVMs(avms);		
+	public AllocatedApplicationVM[] releaseApplicationVMs(AllocatedApplicationVM[] avms) throws Exception {
+		return ( (LogicalResourcesProviderServicesI) this.connector ).releaseApplicationVMs(avms);		
 	}
 	
 	@Override

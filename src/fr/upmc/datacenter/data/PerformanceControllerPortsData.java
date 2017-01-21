@@ -8,32 +8,39 @@ public class PerformanceControllerPortsData
 extends AbstractData
 implements PerformanceControllerPortsDataI {
 
+	public PerformanceControllerPortsData(
+			String uri,
+			String pcmipURI,
+			String pcsipURI,
+			String pccrnipURI)
+	{
+		super(uri);
+		addInboundPort(pcmipURI);
+		addInboundPort(pcsipURI);
+		addInboundPort(pccrnipURI);
+	}
+
 	public PerformanceControllerPortsData(String uri, List<String> inboundPortsUri, List<String> outboundPortsUri) {
 		super(uri, inboundPortsUri, outboundPortsUri);
-		// TODO Auto-generated constructor stub
 	}
 
 	public PerformanceControllerPortsData(String uri) {
 		super(uri);
-		// TODO Auto-generated constructor stub
 	}
 
 	@Override
-	public String getUri() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getPerformanceControllerManagementInboundPortURI() {
+		return getInboundPorts().get(0);
 	}
 
 	@Override
-	public List<String> getInboundPorts() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getPerformanceControllerServicesInboundPortURI() {
+		return getInboundPorts().get(1);
 	}
 
 	@Override
-	public List<String> getOutboundPorts() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getPerformanceControllerCoreReleasingNotificationInboundPortURI() {
+		return getInboundPorts().get(2);
 	}
 
 }

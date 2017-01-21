@@ -14,12 +14,14 @@ implements LogicalResourcesProviderPortsDataI
 			String uri,
 			String lrpmipURI,
 			String lrpripURI,
-			String lrpsipURI)
+			String lrpsipURI,
+			String lrpcrnbipURI)
 	{
 		super(uri);
 		addInboundPort(lrpmipURI);
 		addInboundPort(lrpripURI);
 		addInboundPort(lrpsipURI);
+		addInboundPort(lrpcrnbipURI);
 	}
 	
 	public LogicalResourcesProviderPortsData(String uri, List<String> inboundPortsUri, List<String> outboundPortsUri) {
@@ -45,4 +47,9 @@ implements LogicalResourcesProviderPortsDataI
 		return inboundPortsUri.get(2);
 	}
 
+	@Override
+	public String getLogicalResourcesProviderCoreReleasingNotifyBackInboundPort() {
+		return inboundPortsUri.get(3);
+	}
+	
 }

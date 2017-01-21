@@ -22,23 +22,23 @@ implements LogicalResourcesProviderRequestingI
 	}
 
 	@Override
-	public void increaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM avm) throws Exception {
-		( (LogicalResourcesProviderRequestingI) this.connector ).increaseApplicationVMFrequency(requesterUri, avm);	
+	public Integer[] increaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM avm) throws Exception {
+		return ( (LogicalResourcesProviderRequestingI) this.connector ).increaseApplicationVMFrequency(requesterUri, avm);	
 	}
 
 	@Override
-	public void decreaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM avm) throws Exception {
-		( (LogicalResourcesProviderRequestingI) this.connector ).decreaseApplicationVMFrequency(requesterUri, avm);		
+	public Integer[] decreaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM avm) throws Exception {
+		return ( (LogicalResourcesProviderRequestingI) this.connector ).decreaseApplicationVMFrequency(requesterUri, avm);		
 	}
 
 	@Override
-	public void increaseApplicationVMCores(String requesterUri, AllocatedApplicationVM avm, Integer coreCount) throws Exception {
-		( (LogicalResourcesProviderRequestingI) this.connector ).increaseApplicationVMCores(requesterUri, avm, coreCount);
+	public Integer increaseApplicationVMCores(String requesterUri, AllocatedApplicationVM avm, Integer coreCount) throws Exception {
+		return ( (LogicalResourcesProviderRequestingI) this.connector ).increaseApplicationVMCores(requesterUri, avm, coreCount);
 	}
 
 	@Override
-	public void decreaseApplicationVMCores(String requesterUri, AllocatedApplicationVM avm, Integer coreCount) throws Exception {
-		( (LogicalResourcesProviderRequestingI) this.connector ).decreaseApplicationVMCores(requesterUri, avm, coreCount);
+	public Integer decreaseApplicationVMCores(String requesterUri, AllocatedApplicationVM avm, Integer coreCount) throws Exception {
+		return ( (LogicalResourcesProviderRequestingI) this.connector ).decreaseApplicationVMCores(requesterUri, avm, coreCount);
 	}
 
 	@Override
@@ -47,8 +47,8 @@ implements LogicalResourcesProviderRequestingI
 	}
 
 	@Override
-	public void releaseApplicationVMs(String requesterUri, AllocatedApplicationVM[] avms) throws Exception {
-		( (LogicalResourcesProviderRequestingI) this.connector ).releaseApplicationVMs(requesterUri, avms);
+	public AllocatedApplicationVM[] releaseApplicationVMs(String requesterUri, AllocatedApplicationVM[] avms) throws Exception {
+		return ( (LogicalResourcesProviderRequestingI) this.connector ).releaseApplicationVMs(requesterUri, avms);
 	}
 
 	@Override

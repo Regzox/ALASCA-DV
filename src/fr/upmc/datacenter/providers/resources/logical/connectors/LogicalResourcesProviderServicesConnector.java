@@ -2,7 +2,6 @@ package fr.upmc.datacenter.providers.resources.logical.connectors;
 
 import fr.upmc.components.connectors.AbstractConnector;
 import fr.upmc.datacenter.providers.resources.logical.AllocatedApplicationVM;
-import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderRequestingI;
 import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderServicesI;
 import fr.upmc.datacenter.software.controllers.performance.AllocatedDispatcher;
 
@@ -12,23 +11,23 @@ implements LogicalResourcesProviderServicesI
 {
 
 	@Override
-	public void increaseApplicationVMFrequency(AllocatedApplicationVM avm) throws Exception {
-		( (LogicalResourcesProviderServicesI) this.offering ).increaseApplicationVMFrequency(avm);		
+	public Integer[] increaseApplicationVMFrequency(AllocatedApplicationVM avm) throws Exception {
+		return ( (LogicalResourcesProviderServicesI) this.offering ).increaseApplicationVMFrequency(avm);		
 	}
 
 	@Override
-	public void decreaseApplicationVMFrequency(AllocatedApplicationVM avm) throws Exception {
-		( (LogicalResourcesProviderServicesI) this.offering ).decreaseApplicationVMFrequency(avm);		
+	public Integer[] decreaseApplicationVMFrequency(AllocatedApplicationVM avm) throws Exception {
+		return ( (LogicalResourcesProviderServicesI) this.offering ).decreaseApplicationVMFrequency(avm);		
 	}
 
 	@Override
-	public void increaseApplicationVMCores(AllocatedApplicationVM avm, Integer coreCount) throws Exception {
-		( (LogicalResourcesProviderServicesI) this.offering ).increaseApplicationVMCores(avm, coreCount);
+	public Integer increaseApplicationVMCores(AllocatedApplicationVM avm, Integer coreCount) throws Exception {
+		return ( (LogicalResourcesProviderServicesI) this.offering ).increaseApplicationVMCores(avm, coreCount);
 	}
 
 	@Override
-	public void decreaseApplicationVMCores(AllocatedApplicationVM avm, Integer coreCount) throws Exception {
-		( (LogicalResourcesProviderServicesI) this.offering ).decreaseApplicationVMCores(avm, coreCount);		
+	public Integer decreaseApplicationVMCores(AllocatedApplicationVM avm, Integer coreCount) throws Exception {
+		return ( (LogicalResourcesProviderServicesI) this.offering ).decreaseApplicationVMCores(avm, coreCount);		
 	}
 
 	@Override
@@ -37,8 +36,8 @@ implements LogicalResourcesProviderServicesI
 	}
 
 	@Override
-	public void releaseApplicationVMs(AllocatedApplicationVM[] avms) throws Exception {
-		( (LogicalResourcesProviderServicesI) this.offering ).releaseApplicationVMs(avms);		
+	public AllocatedApplicationVM[] releaseApplicationVMs(AllocatedApplicationVM[] avms) throws Exception {
+		return ( (LogicalResourcesProviderServicesI) this.offering ).releaseApplicationVMs(avms);		
 	}
 	
 	@Override

@@ -12,22 +12,22 @@ extends 	RequestingI,
 			OfferedI
 {
 	
-	void increaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM avm) throws Exception;
+	Integer[] increaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM avm) throws Exception;
 	
 	
-	void decreaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM avm) throws Exception;
+	Integer[] decreaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM avm) throws Exception;
 	
 	
-	void increaseApplicationVMCores(String requesterUri, AllocatedApplicationVM avm, Integer coreCount) throws Exception;
+	Integer increaseApplicationVMCores(String requesterUri, AllocatedApplicationVM avm, Integer coreCount) throws Exception;
 	
 	
-	void decreaseApplicationVMCores(String requesterUri, AllocatedApplicationVM avm, Integer coreCount) throws Exception;
+	Integer decreaseApplicationVMCores(String requesterUri, AllocatedApplicationVM avm, Integer coreCount) throws Exception;
 	
 	
 	AllocatedApplicationVM[] allocateApplicationVMs(String requesterUri, Integer avmCount) throws Exception;
 	
 	
-	void releaseApplicationVMs(String requesterUri, AllocatedApplicationVM[] avms) throws Exception;
+	AllocatedApplicationVM[] releaseApplicationVMs(String requesterUri, AllocatedApplicationVM[] avms) throws Exception;
 	
 	
 	void connectApplicationVM(String requesterUri, AllocatedApplicationVM aavm, AllocatedDispatcher adsp) throws Exception;

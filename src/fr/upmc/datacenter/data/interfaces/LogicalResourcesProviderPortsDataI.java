@@ -5,5 +5,6 @@ public interface LogicalResourcesProviderPortsDataI extends PortsDataI {
 	public String getLogicalResourcesProviderManagementInboundPort();
 	public String getLogicalResourcesProviderRequestingInboundPort();
 	public String getLogicalResourcesProviderServicesInboundPort();
+	public String getLogicalResourcesProviderCoreReleasingNotifyBackInboundPort();
 	
 }

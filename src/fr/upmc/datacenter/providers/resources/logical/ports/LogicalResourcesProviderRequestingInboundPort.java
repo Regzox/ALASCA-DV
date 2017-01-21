@@ -39,62 +39,58 @@ implements LogicalResourcesProviderRequestingI
 	}
 
 	@Override
-	public void increaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM avm) throws Exception {
+	public Integer[] increaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM avm) throws Exception {
 		final LogicalResourceProvider lrp = (LogicalResourceProvider) this.owner;
 
-		lrp.handleRequestSync(new ComponentService<Void>() {
+		return lrp.handleRequestSync(new ComponentService<Integer[]>() {
 
 			@Override
-			public Void call() throws Exception {
-				lrp.increaseApplicationVMFrequency(requesterUri, avm);
-				return null;
+			public Integer[] call() throws Exception {
+				return lrp.increaseApplicationVMFrequency(requesterUri, avm);
 			}
 
 		});
 	}
 
 	@Override
-	public void decreaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM avm) throws Exception {
+	public Integer[] decreaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM avm) throws Exception {
 		final LogicalResourceProvider lrp = (LogicalResourceProvider) this.owner;
 
-		lrp.handleRequestSync(new ComponentService<Void>() {
+		return lrp.handleRequestSync(new ComponentService<Integer[]>() {
 
 			@Override
-			public Void call() throws Exception {
-				lrp.decreaseApplicationVMFrequency(requesterUri, avm);
-				return null;
+			public Integer[] call() throws Exception {
+				return lrp.decreaseApplicationVMFrequency(requesterUri, avm);
 			}
 
 		});
 	}
 
 	@Override
-	public void increaseApplicationVMCores(String requesterUri, AllocatedApplicationVM avm,
+	public Integer increaseApplicationVMCores(String requesterUri, AllocatedApplicationVM avm,
 			Integer coreCount) throws Exception {
 		final LogicalResourceProvider lrp = (LogicalResourceProvider) this.owner;
 
-		lrp.handleRequestSync(new ComponentService<Void>() {
+		return lrp.handleRequestSync(new ComponentService<Integer>() {
 
 			@Override
-			public Void call() throws Exception {
-				lrp.increaseApplicationVMCores(requesterUri, avm, coreCount);
-				return null;
+			public Integer call() throws Exception {
+				return lrp.increaseApplicationVMCores(requesterUri, avm, coreCount);
 			}
 
 		});
 	}
 
 	@Override
-	public void decreaseApplicationVMCores(String requesterUri, AllocatedApplicationVM avm,
+	public Integer decreaseApplicationVMCores(String requesterUri, AllocatedApplicationVM avm,
 			Integer coreCount) throws Exception {
 		final LogicalResourceProvider lrp = (LogicalResourceProvider) this.owner;
 
-		lrp.handleRequestSync(new ComponentService<Void>() {
+		return lrp.handleRequestSync(new ComponentService<Integer>() {
 
 			@Override
-			public Void call() throws Exception {
-				lrp.decreaseApplicationVMCores(requesterUri, avm, coreCount);
-				return null;
+			public Integer call() throws Exception {
+				return lrp.decreaseApplicationVMCores(requesterUri, avm, coreCount);
 			}
 
 		});
@@ -115,15 +111,14 @@ implements LogicalResourcesProviderRequestingI
 	}
 
 	@Override
-	public void releaseApplicationVMs(String requesterUri, AllocatedApplicationVM[] avms) throws Exception {
+	public AllocatedApplicationVM[] releaseApplicationVMs(String requesterUri, AllocatedApplicationVM[] avms) throws Exception {
 		final LogicalResourceProvider lrp = (LogicalResourceProvider) this.owner;
 
-		lrp.handleRequestSync(new ComponentService<Void>() {
+		return lrp.handleRequestSync(new ComponentService<AllocatedApplicationVM[]>() {
 
 			@Override
-			public Void call() throws Exception {
-				lrp.releaseApplicationVMs(requesterUri, avms);
-				return null;
+			public AllocatedApplicationVM[] call() throws Exception {
+				return lrp.releaseApplicationVMs(requesterUri, avms);
 			}
 
 		});

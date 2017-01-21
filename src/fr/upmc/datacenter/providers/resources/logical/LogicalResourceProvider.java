@@ -12,16 +12,25 @@ import fr.upmc.components.AbstractComponent;
 import fr.upmc.components.cvm.AbstractCVM;
 import fr.upmc.components.ports.PortI;
 import fr.upmc.datacenter.data.interfaces.LogicalResourcesProviderPortsDataI;
+import fr.upmc.datacenter.data.interfaces.PerformanceControllerPortsDataI;
 import fr.upmc.datacenter.data.interfaces.PhysicalResourcesProviderPortsDataI;
 import fr.upmc.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.upmc.datacenter.providers.resources.annotations.Ring;
 import fr.upmc.datacenter.providers.resources.exceptions.NoApplicationVMException;
 import fr.upmc.datacenter.providers.resources.exceptions.NoCoreException;
 import fr.upmc.datacenter.providers.resources.exceptions.OrphaneApplicationVMException;
+import fr.upmc.datacenter.providers.resources.logical.connectors.LogicalResourcesProviderCoreReleasingNotificationConnector;
+import fr.upmc.datacenter.providers.resources.logical.connectors.LogicalResourcesProviderCoreReleasingNotifyBackConnector;
 import fr.upmc.datacenter.providers.resources.logical.connectors.LogicalResourcesProviderRequestingConnector;
+import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderCoreReleasingNotificationI;
+import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderCoreReleasingNotifyBackHandlerI;
+import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderCoreReleasingNotifyBackI;
 import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderManagementI;
 import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderRequestingI;
 import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderServicesI;
+import fr.upmc.datacenter.providers.resources.logical.ports.LogicalResourcesProviderCoreReleasingNotificationOutboundPort;
+import fr.upmc.datacenter.providers.resources.logical.ports.LogicalResourcesProviderCoreReleasingNotifyBackInboundPort;
+import fr.upmc.datacenter.providers.resources.logical.ports.LogicalResourcesProviderCoreReleasingNotifyBackOutboundPort;
 import fr.upmc.datacenter.providers.resources.logical.ports.LogicalResourcesProviderManagementInboundPort;
 import fr.upmc.datacenter.providers.resources.logical.ports.LogicalResourcesProviderRequestingInboundPort;
 import fr.upmc.datacenter.providers.resources.logical.ports.LogicalResourcesProviderRequestingOutboundPort;
@@ -61,7 +70,8 @@ extends		AbstractComponent
 implements	LogicalResourcesProviderManagementI,
 			LogicalResourcesProviderRequestingI,
 			LogicalResourcesProviderServicesI,
-			CoreReleasingNotificationHandlerI
+			CoreReleasingNotificationHandlerI,
+			LogicalResourcesProviderCoreReleasingNotifyBackHandlerI
 {
 	ComponentDataNode logicalResourcesProvider;
 	
@@ -70,7 +80,9 @@ implements	LogicalResourcesProviderManagementI,
 		LOGICAL_RESOURCES_PROVIDERS, 
 		PHYSICAL_RESOURCES_PROVIDERS, 
 		APPLICATION_VM,
-		DISPATCHER
+		DISPATCHER,
+		PERFORMANCE_CONTROLLER,
+		LOGICAL_RESOURCES_PROVIDERS_NOTIFY_BACK
 	}
 	
 	public enum AAVMDataType {
@@ -79,7 +91,26 @@ implements	LogicalResourcesProviderManagementI,
 		ALLOCATED_CORES
 	}
 	
-	Map<AllocatedApplicationVM, Map<AAVMDataType, Object>> allocatedAVMs;
+	class AllocatedApplicationVMCoreReleasingRequest {
+		String requesterUri;
+		AllocatedApplicationVM aavm;
+		Integer coreCount;
+		
+		AllocatedApplicationVMCoreReleasingRequest(
+				String requesterUri,
+				AllocatedApplicationVM aavm,
+				Integer coreCount) 
+		{
+			this.requesterUri = requesterUri;
+			this.aavm = aavm;
+			this.coreCount = coreCount;
+		}
+	}
+	
+	List<AllocatedApplicationVMCoreReleasingRequest> aavmcrrs;
+	
+	LogicalResourcesProviderDynamicState lrpds;
+	
 	List<AllocatedApplicationVM> waitingAVM;
 	protected AllocatedApplicationVM lastAAVM;
 	
@@ -87,20 +118,25 @@ implements	LogicalResourcesProviderManagementI,
 			String uri,
 			String lrpmipURI,
 			String lrpripURI,
-			String lrpsipURI) throws Exception 
+			String lrpsipURI,
+			String lrpcrnbipURI) throws Exception 
 	{
 		super(2, 1);
-		allocatedAVMs = new HashMap<>();
+		aavmcrrs = new ArrayList<>();
+		lrpds = new LogicalResourcesProviderDynamicState();
 		waitingAVM = new ArrayList<>();
 		logicalResourcesProvider = new ComponentDataNode(uri)
 				.addPort(lrpmipURI)
 				.addPort(lrpripURI)
 				.addPort(lrpsipURI)
+				.addPort(lrpcrnbipURI)
 				.addChild(new ComponentDataNode(Branch.CONTROLLERS))
 				.addChild(new ComponentDataNode(Branch.LOGICAL_RESOURCES_PROVIDERS))
 				.addChild(new ComponentDataNode(Branch.PHYSICAL_RESOURCES_PROVIDERS))
 				.addChild(new ComponentDataNode(Branch.APPLICATION_VM))
-				.addChild(new ComponentDataNode(Branch.DISPATCHER));
+				.addChild(new ComponentDataNode(Branch.DISPATCHER)
+				.addChild(new ComponentDataNode(Branch.PERFORMANCE_CONTROLLER)))
+				.addChild(new ComponentDataNode(Branch.LOGICAL_RESOURCES_PROVIDERS_NOTIFY_BACK));
 		
 		if ( !offeredInterfaces.contains(LogicalResourcesProviderManagementI.class) )
 			addOfferedInterface(LogicalResourcesProviderManagementI.class);
@@ -134,10 +170,23 @@ implements	LogicalResourcesProviderManagementI,
 						this);
 		addPort(lrpsip);
 		lrpsip.publishPort();
+		
+		if ( !offeredInterfaces.contains(LogicalResourcesProviderCoreReleasingNotifyBackI.class) )
+			addOfferedInterface(LogicalResourcesProviderCoreReleasingNotifyBackI.class);
+		
+		LogicalResourcesProviderCoreReleasingNotifyBackInboundPort lrpcrnbip = 
+				new LogicalResourcesProviderCoreReleasingNotifyBackInboundPort(
+						lrpcrnbipURI, 
+						LogicalResourcesProviderCoreReleasingNotifyBackI.class, 
+						this);
+		addPort(lrpcrnbip);
+		lrpcrnbip.publishPort();
 	}
 	
 	@Override
 	public void connectPhysicalResourcesProvider(PhysicalResourcesProviderPortsDataI prppdi) throws Exception {
+		assert prppdi != null;
+		
 		String 	prpURI = prppdi.getUri(),
 				prpsipURI = prppdi.getPhysicalResourcesProviderServicesInboundPort();
 		ComponentDataNode prpdn = new ComponentDataNode(prpURI)
@@ -163,6 +212,8 @@ implements	LogicalResourcesProviderManagementI,
 
 	@Override
 	public void disconnectPhysicalResourcesProvider(PhysicalResourcesProviderPortsDataI prppdi) throws Exception {
+		assert prppdi != null;
+		
 		ComponentDataNode prpdn = logicalResourcesProvider.findByURI(prppdi.getUri());
 		String 	prpsipURI = prpdn.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_SERVICES_INBOUND_PORT),
 				prpsopURI = prpdn.getPortConnectedTo(prpsipURI);
@@ -179,6 +230,8 @@ implements	LogicalResourcesProviderManagementI,
 
 	@Override
 	public void connectLogicalResourcesProvider(LogicalResourcesProviderPortsDataI lrppdi) throws Exception {
+		assert lrppdi != null;
+		
 		String 	lrpURI = lrppdi.getUri(),
 				lrpripURI = lrppdi.getLogicalResourcesProviderRequestingInboundPort();
 		ComponentDataNode lrpdn = new ComponentDataNode(lrpURI)
@@ -204,14 +257,14 @@ implements	LogicalResourcesProviderManagementI,
 
 	@Override
 	public void disconnectLogicalResourcesProvider(LogicalResourcesProviderPortsDataI lrppdi) throws Exception {
+		assert lrppdi != null;
+		
 		ComponentDataNode lrpdn = logicalResourcesProvider.findByURI(lrppdi.getUri());
 		String 	lrpripURI = lrppdi.getLogicalResourcesProviderRequestingInboundPort(),
 				lrpropURI = lrpdn.getPortConnectedTo(lrpripURI);
 		LogicalResourcesProviderRequestingOutboundPort lrprop = 
 				(LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
 		lrprop.doDisconnection();
-		removePort(lrprop);
-		lrprop.unpublishPort();
 		lrprop.destroyPort();
 
 		logicalResourcesProvider.disconnect(lrpropURI);
@@ -220,12 +273,14 @@ implements	LogicalResourcesProviderManagementI,
 
 	@Override
 	@Ring
-	public void increaseApplicationVMFrequency(AllocatedApplicationVM aavm) throws Exception {
+	public Integer[] increaseApplicationVMFrequency(AllocatedApplicationVM aavm) throws Exception {
+		assert aavm != null;
+		
 		if ( !isLocal(aavm) ) {
 			String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 			LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
 			
-			lrprop.increaseApplicationVMFrequency(logicalResourcesProvider.uri, aavm);
+			return lrprop.increaseApplicationVMFrequency(logicalResourcesProvider.uri, aavm);
 		} else {
 			String prpsopURI = logicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_SERVICES_OUTBOUND_PORT);
 			PhysicalResourcesProviderServicesOutboundPort prpsop = (PhysicalResourcesProviderServicesOutboundPort) findPortFromURI(prpsopURI);
@@ -235,13 +290,8 @@ implements	LogicalResourcesProviderManagementI,
 			
 			/** Capturer les uris des processors sur les quels l'AVM en question tourne **/
 			
-			logReferencedApplicationVM();
-			System.out.println(logicalResourcesProvider.uri);
-			System.out.println(isLocal(aavm));
-			
-			logMessage(aavm.avmURI);
-			
-			for (AllocatedCore ac : getAllocatedCores(aavm) ) {
+//			for (AllocatedCore ac : getAllocatedCores(aavm) ) {
+			for (AllocatedCore ac : lrpds.getAllocatedCores(aavm) ) {
 				if (processorsURI.contains(ac.processorURI))
 					continue;
 				else {
@@ -250,19 +300,42 @@ implements	LogicalResourcesProviderManagementI,
 				}
 			}
 			
-			for (AllocatedCore ac : uniprocAcs)
-				prpsop.increaseProcessorFrenquency(ac);
+			Map<String, Integer[]> processorsFrequencies = new HashMap<>();
+			
+			for (AllocatedCore ac : uniprocAcs) {
+				processorsFrequencies.put(ac.processorURI, prpsop.increaseProcessorFrenquency(ac));
+			}
+			
+			List<Integer> avmFrequencies = new ArrayList<>();
+			
+			for ( String processorURI : processorsFrequencies.keySet() ) {
+//				for ( AllocatedCore ac : getAllocatedCores(aavm) ) {
+				for (AllocatedCore ac : lrpds.getAllocatedCores(aavm) ) {
+					if ( processorURI.equals(ac.processorURI) ) {
+						avmFrequencies.add(processorsFrequencies.get(processorURI)[ac.coreNo]);
+					}
+				}
+			}
+			
+			Integer[] result = new Integer[avmFrequencies.size()];
+			
+			for ( int i = 0; i < avmFrequencies.size(); i++ )
+				result[i] = avmFrequencies.get(i);
+			
+			return result;
 		}
 	}
 
 	@Override
 	@Ring
-	public void decreaseApplicationVMFrequency(AllocatedApplicationVM aavm) throws Exception {
+	public Integer[] decreaseApplicationVMFrequency(AllocatedApplicationVM aavm) throws Exception {
+		assert aavm != null;
+		
 		if ( !isLocal(aavm) ) {
 			String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 			LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
 			
-			lrprop.decreaseApplicationVMFrequency(logicalResourcesProvider.uri, aavm);
+			return lrprop.decreaseApplicationVMFrequency(logicalResourcesProvider.uri, aavm);
 		}
 		else {
 			String prpsopURI = logicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_SERVICES_OUTBOUND_PORT);
@@ -273,7 +346,8 @@ implements	LogicalResourcesProviderManagementI,
 			
 			/** Capturer les uris des processors sur les quels l'AVM en question tourne **/
 			
-			for (AllocatedCore ac : getAllocatedCores(aavm) ) {
+//			for (AllocatedCore ac : getAllocatedCores(aavm) ) {
+			for (AllocatedCore ac : lrpds.getAllocatedCores(aavm) ) {
 				if (processorsURI.contains(ac.processorURI))
 					continue;
 				else {
@@ -282,56 +356,114 @@ implements	LogicalResourcesProviderManagementI,
 				}
 			}
 			
-			for (AllocatedCore ac : uniprocAcs)
-				prpsop.decreaseProcessorFrenquency(ac);
+			Map<String, Integer[]> processorsFrequencies = new HashMap<>();
+			
+			for (AllocatedCore ac : uniprocAcs) {
+				processorsFrequencies.put(ac.processorURI, prpsop.decreaseProcessorFrenquency(ac));
+			}
+			
+			List<Integer> avmFrequencies = new ArrayList<>();
+			
+			for ( String processorURI : processorsFrequencies.keySet() ) {
+//				for ( AllocatedCore ac : getAllocatedCores(aavm) ) {
+				for (AllocatedCore ac : lrpds.getAllocatedCores(aavm) ) {
+					if ( processorURI.equals(ac.processorURI) ) {
+						avmFrequencies.add(processorsFrequencies.get(processorURI)[ac.coreNo]);
+					}
+				}
+			}
+			
+			Integer[] result = new Integer[avmFrequencies.size()];
+			
+			for ( int i = 0; i < avmFrequencies.size(); i++ )
+				result[i] = avmFrequencies.get(i);
+			
+			return result;
 		}
 	}
 
 	@Override
 	@Ring
-	public void increaseApplicationVMCores(AllocatedApplicationVM aavm, Integer coreCount) throws Exception {
+	public Integer increaseApplicationVMCores(AllocatedApplicationVM aavm, Integer coreCount) throws Exception {
+		assert aavm != null;
+		assert coreCount > 0;
 		
+		showCorePerAavm(); // TODO
+
 		if ( !isLocal(aavm) ) {
 			String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 			LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
 			
-			lrprop.increaseApplicationVMCores(logicalResourcesProvider.uri, aavm, coreCount);
+			return lrprop.increaseApplicationVMCores(logicalResourcesProvider.uri, aavm, coreCount);
 		} else {
 			String avmmopURI = logicalResourcesProvider.getPortConnectedTo(aavm.avmmipURI);
 			ApplicationVMManagementOutboundPort avmmop = (ApplicationVMManagementOutboundPort) findPortFromURI(avmmopURI);
 			String prpsopURI = logicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_SERVICES_OUTBOUND_PORT);
 			PhysicalResourcesProviderServicesOutboundPort prpsop = (PhysicalResourcesProviderServicesOutboundPort) findPortFromURI(prpsopURI);
 			
-			AllocatedCore[] acsArray = null;
+			AllocatedCore[] acs = null;
 			try {
-				acsArray = prpsop.allocateCores(allocatedCoreListToArray(getAllocatedCores(aavm)), coreCount);
-				logMessage("increased count by " + acsArray.length);
-				getAllocatedCores(aavm).addAll(allocatedCoreArrayToList(acsArray));
-				avmmop.allocateCores(acsArray);
+//				acsArray = prpsop.allocateCores(allocatedCoreListToArray(getAllocatedCores(aavm)), coreCount);
+				acs = prpsop.allocateCores(lrpds.getAllocatedCores(aavm).toArray(new AllocatedCore[0]), coreCount);
+				logMessage("increased count by " + acs.length);
+//				getAllocatedCores(aavm).addAll(allocatedCoreArrayToList(acsArray));
+				lrpds.addAllocatedCores(aavm, acs);
+				avmmop.allocateCores(acs);
 			} catch (ExecutionException e) {
-				e.printStackTrace();
+//				e.printStackTrace();
 				if ( !e.getMessage().contains(NoCoreException.class.getCanonicalName()) )
 					throw e;
-				logMessage("IMPOSSIBLE TO ALLOCATE CORES !");
+				logMessage("Impossible to allocated core on the same computer because has not enought cores");
 			}
+			
+			return (acs != null) ? acs.length : 0;
 		}
 	}
 
 	@Override
 	@Ring
-	public void decreaseApplicationVMCores(AllocatedApplicationVM aavm, Integer coreCount) throws Exception {
-		if ( !isLocal(aavm) )
-			decreaseApplicationVMCores(logicalResourcesProvider.uri, aavm, coreCount);
-		else {
+	public Integer decreaseApplicationVMCores(AllocatedApplicationVM aavm, Integer coreCount) throws Exception {
+		assert aavm != null;
+		assert coreCount > 0;
+		
+		showCorePerAavm(); // TODO
+		
+		if ( !isLocal(aavm) ) {
+			String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
+			LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
+			
+			return lrprop.decreaseApplicationVMCores(logicalResourcesProvider.uri, aavm, coreCount);
+		} else {
 			String avmcropURI = logicalResourcesProvider.getPortConnectedTo(aavm.avmcripURI);
 			ApplicationVMCoreReleasingOutboundPort avmcrop = (ApplicationVMCoreReleasingOutboundPort) findPortFromURI(avmcropURI);
-			avmcrop.releaseCores(coreCount);
+			
+			/**
+			 * Si l'on veut libérer plus de coeurs que l'AVM n'en possède, l'AVM est alors vidée de ses coeurs,
+			 * On réajustera le paramètre pour ne pas demander une libération impossible.
+			 */
+			
+			System.out.println(lrpds.getAllocatedCores(aavm).size() + " - " + coreCount + " = " + (lrpds.getAllocatedCores(aavm).size() - coreCount));
+			
+			final int substraction = (lrpds.getAllocatedCores(aavm).size() - coreCount);
+			
+			if ( substraction <= 0 ) {
+				avmcrop.releaseCores(lrpds.getAllocatedCores(aavm).size());
+				return 0;				
+			} else {
+				avmcrop.releaseCores(coreCount);
+				return substraction;
+			}
+			
 		}
 	}
 
 	@Override
 	@Ring
 	public AllocatedApplicationVM[] allocateApplicationVMs(Integer avmCount) throws Exception {
+		assert avmCount > 0;
+		
+		showCorePerAavm(); // TODO
+		
 		String prpsopURI = logicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_SERVICES_OUTBOUND_PORT);
 		
 		if ( !(prpsopURI != null) )
@@ -342,22 +474,23 @@ implements	LogicalResourcesProviderManagementI,
 		AllocatedApplicationVM[] allocAVMs = new AllocatedApplicationVM[avmCount];
 		int preallocated = 0;
 		
-		System.out.println("avm count : " + avmCount);
-		System.out.println("waiting avm : " + waitingAVM.size());
-		System.out.println("refs avm : " + allocatedAVMs.size());
+//		System.out.println("avm count : " + avmCount);
+//		System.out.println("waiting avm : " + waitingAVM.size());
+//		System.out.println("refs avm : " + allocatedAVMs.size());
 		
 		if (waitingAVM.size() > 0) {
 			for ( int i = 0; i < avmCount && !waitingAVM.isEmpty(); i++, preallocated++) {
 				allocAVMs[i] = waitingAVM.remove(0);
 				logMessage("The waiting avm [" + allocAVMs[i].avmURI + "] was selected");
-				logMessage("The selected avm has (" + getAllocatedCores(allocAVMs[i]).size() + ") cores for running tasks");
+				logMessage("The selected avm has (" + lrpds.getAllocatedCores(allocAVMs[i]).size() + ") cores for running tasks");
 				
-				if ( getAllocatedCores(allocAVMs[i]).size() == 0 ) {
+				if ( lrpds.getAllocatedCores(allocAVMs[i]).size() == 0 ) {
 					PhysicalResourcesProviderServicesOutboundPort prpsop = (PhysicalResourcesProviderServicesOutboundPort) findPortFromURI(prpsopURI);
 					AllocatedCore[] acs = prpsop.allocateCores(1);
+					logMessage("(" + acs.length + ") cores are been allocated for [" + allocAVMs[i].avmURI + "]");
 					List<AllocatedCore> acsList = new ArrayList<>();
 					acsList.add(acs[0]);
-					setAllocatedCores(allocAVMs[i], allocatedCoreListToArray(acsList));
+					lrpds.addAllocatedCores(allocAVMs[i], acsList.toArray(new AllocatedCore[0]));
 					String avmmopURI = logicalResourcesProvider.getPortConnectedTo(allocAVMs[i].avmmipURI);
 					ApplicationVMManagementOutboundPort avmmop = (ApplicationVMManagementOutboundPort) findPortFromURI(avmmopURI);
 					avmmop.allocateCores(acs);
@@ -365,28 +498,9 @@ implements	LogicalResourcesProviderManagementI,
 			}
 		}
 		
-		for ( int i = preallocated; i < avmCount; i++ ) {
-			AllocatedApplicationVM aavm = createAllocatedApplicationVM();
-			
+		for ( int i = preallocated; i < avmCount; i++ ) {			
 			try {
-				
-				PhysicalResourcesProviderServicesOutboundPort prpsop = (PhysicalResourcesProviderServicesOutboundPort) findPortFromURI(prpsopURI);
-				AllocatedCore[] acs = prpsop.allocateCores(1);
-				
-				createApplicationVM(aavm);
-				connectApplicationVM(aavm, getApplicationVMCoreReleasingNotificationOutboundPort(aavm));
-				
-				List<AllocatedCore> acsList = new ArrayList<>();
-				acsList.add(acs[0]);
-				setAllocatedCores(aavm, allocatedCoreListToArray(acsList));
-				
-				String avmmopURI = logicalResourcesProvider.getPortConnectedTo(aavm.avmmipURI);
-				ApplicationVMManagementOutboundPort avmmop = (ApplicationVMManagementOutboundPort) findPortFromURI(avmmopURI);
-				avmmop.allocateCores(acs);
-				allocAVMs[i] = aavm;
-				
-				logMessage( "A new application VM is created with " + acs.length + " cores allocated");
-				
+				allocAVMs[i] = createApplicationVM();
 			} catch (ExecutionException e) {
 				
 				if ( !e.getMessage().contains(NoCoreException.class.getCanonicalName()) ) {
@@ -415,12 +529,17 @@ implements	LogicalResourcesProviderManagementI,
 
 	@Override
 	@Ring
-	public void releaseApplicationVMs(AllocatedApplicationVM[] avms) throws Exception {
+	public AllocatedApplicationVM[] releaseApplicationVMs(AllocatedApplicationVM[] avms) throws Exception {
+		assert avms != null;
+		assert avms.length > 0;
+		
+		showCorePerAavm(); // TODO
+		
 		List<AllocatedApplicationVM> provided = new ArrayList<>();
 		List<AllocatedApplicationVM> notProvided = new ArrayList<>();
 		
 		for ( int i = 0; i < avms.length; i++ ) {
-			System.out.println(avms[i].avmURI);
+//			System.out.println(avms[i].avmURI);
 			if ( isLocal(avms[i]) ) {
 				provided.add(avms[i]);
 			} else {
@@ -428,18 +547,22 @@ implements	LogicalResourcesProviderManagementI,
 			}
 		}
 		
-		System.out.println("P : " + provided.size());
-		System.out.println("NP : " + notProvided.size());
+//		System.out.println("P : " + provided.size());
+//		System.out.println("NP : " + notProvided.size());
 		logReferencedApplicationVM();
+		
+		List<AllocatedApplicationVM> released = new ArrayList<>();
 		
 		for ( AllocatedApplicationVM aavm : provided ) {
 			String 	avmcropURI = logicalResourcesProvider.getPortConnectedTo(aavm.avmcripURI);
 			ApplicationVMCoreReleasingOutboundPort avmcrop = (ApplicationVMCoreReleasingOutboundPort) findPortFromURI(avmcropURI);
-			avmcrop.releaseMaximumCores(); // On peut se permettre de réduire jusqu'à 1 le nombre de coeurs pour les autres AVM en travail.
+			avmcrop.releaseMaximumCores(); // On relache les coeurs des AVM pour garantir un meilleur service
 			waitingAVM.add(aavm);
 			
-			logMessage("[" + aavm.avmURI + "] was released, reduced to 1 core and placed into waiting list");
+			logMessage("[" + aavm.avmURI + "] was released, reduced to 0 core and placed into waiting list");
 		}
+		
+		released.addAll(provided);
 		
 		if ( notProvided.size() > 0 ) {
 			AllocatedApplicationVM[] npavms = new AllocatedApplicationVM[notProvided.size()];
@@ -449,37 +572,52 @@ implements	LogicalResourcesProviderManagementI,
 			
 			String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 			LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
-			lrprop.releaseApplicationVMs(logicalResourcesProvider.uri, npavms);
+			AllocatedApplicationVM[] releasedElsewhere = lrprop.releaseApplicationVMs(logicalResourcesProvider.uri, npavms);
+			
+			released.addAll(allocatedApplicationVMArrayToList(releasedElsewhere));
 		}
+		
+		return allocatedApplicationVMListToArray(released);
 	}
 	
 	@Override
 	@Ring
 	public void connectApplicationVM(AllocatedApplicationVM aavm, AllocatedDispatcher adsp) throws Exception {
+		assert aavm != null;
+		assert adsp != null;
+		
 		if ( !isLocal(aavm) ) {
 			String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 			LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
 			lrprop.connectApplicationVM(logicalResourcesProvider.uri, aavm, adsp);
 		} else {
 			//TODO
-			RequestNotificationOutboundPort avmrnop = getApplicationVMRequestNotificationOutboundPort(aavm);
+			RequestNotificationOutboundPort avmrnop = lrpds.getRequestNotificationOutboundPort(aavm);
 			
 			if ( avmrnop == null )
 				throw new Exception("avmrnop not found !");
 			
-			ComponentDataNode dspdn = new ComponentDataNode(adsp.dspURI)
-					.addPort(adsp.avmrnopURI)
-					.addPort(adsp.dspdsdipURI)
-					.addPort(adsp.dspmipURI)
-					.addPort(adsp.dsprnipURI)
-					.addPort(adsp.dsprsipURI);
 			
-			logicalResourcesProvider.findByURI(Branch.DISPATCHER).addChild(dspdn);
+			ComponentDataNode dspdn = logicalResourcesProvider.findByURI(adsp.dspURI);
+			
+			if ( dspdn == null ) {
+				dspdn = new ComponentDataNode(adsp.dspURI)
+						.addPort(adsp.avmrnopURI)
+						.addPort(adsp.dspdsdipURI)
+						.addPort(adsp.dspmipURI)
+						.addPort(adsp.dsprnipURI)
+						.addPort(adsp.dsprsipURI);
+				logicalResourcesProvider.findByURI(Branch.DISPATCHER).addChild(dspdn);
+			} else {
+				dspdn.addPort(adsp.dsprnipURI);
+			}
+			
+//			System.out.println(dspdn);
 			
 			ComponentDataNode avmdn = logicalResourcesProvider.findByURI(aavm.avmURI);
 			
 			avmrnop.doConnection(adsp.dsprnipURI, RequestNotificationConnector.class.getCanonicalName());
-			
+	
 			avmdn.trustedConnect(aavm.avmrnopURI, adsp.dsprnipURI);
 		}
 	}
@@ -487,30 +625,39 @@ implements	LogicalResourcesProviderManagementI,
 	@Override
 	@Ring
 	public void disconnectApplicationVM(AllocatedApplicationVM aavm, AllocatedDispatcher adsp) throws Exception {
+		assert aavm != null;
+		assert adsp != null;
+		
 		if ( !isLocal(aavm) ) {
 			String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 			LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
 			lrprop.disconnectApplicationVM(logicalResourcesProvider.uri, aavm, adsp);
 		} else {
 			//TODO
-			RequestNotificationOutboundPort avmrnop = getApplicationVMRequestNotificationOutboundPort(aavm);
+			RequestNotificationOutboundPort avmrnop = lrpds.getRequestNotificationOutboundPort(aavm);
 			
 			if ( avmrnop == null )
 				throw new Exception("avmrnop not found !");
 			
 			ComponentDataNode dspdn = logicalResourcesProvider.findByURI(adsp.dspURI);
-			logicalResourcesProvider.findByURI(Branch.DISPATCHER).removeChild(dspdn);
 			ComponentDataNode avmdn = logicalResourcesProvider.findByURI(aavm.avmURI);
 			avmrnop.doDisconnection();
+//			System.out.println(avmdn);
+//			System.out.println(dspdn);
+			String dsprnipURI = avmdn.getPortConnectedTo(aavm.avmrnopURI);
 			avmdn.disconnect(aavm.avmrnopURI);
+			
+			dspdn.removePort(dsprnipURI);
 		}
 	}
 
 	@Override
 	@Ring
-	public void increaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM aavm) throws Exception {
+	public Integer[] increaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM aavm) throws Exception {
+		assert requesterUri != null;
+		assert aavm != null;
 		
-		System.out.println(">>> " + requesterUri + "/" + logicalResourcesProvider.uri + " and " + aavm.lrpURI);
+//		System.out.println(">>> " + requesterUri + "/" + logicalResourcesProvider.uri + " and " + aavm.lrpURI);
 		
 		if ( logicalResourcesProvider.uri.equals(requesterUri) ) {
 			logMessage("All logical resources providers have been requested. Unfortunately, the allocated AVM seems orphane.");
@@ -520,32 +667,17 @@ implements	LogicalResourcesProviderManagementI,
 		if ( !isLocal(aavm) ) {
 			String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 			LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
-			lrprop.increaseApplicationVMFrequency(requesterUri, aavm);
+			return lrprop.increaseApplicationVMFrequency(requesterUri, aavm);
 		} else {
-			increaseApplicationVMFrequency(aavm);
+			return increaseApplicationVMFrequency(aavm);
 		}
 	}
 
 	@Override
 	@Ring
-	public void decreaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM aavm) throws Exception {
-		if ( logicalResourcesProvider.uri.equals(requesterUri) ) {
-			logMessage("All logical resources providers have been requested. Unfortunately, the allocated AVM seems orphane.");
-			throw new OrphaneApplicationVMException(" Orphane application VM : [" + aavm.avmURI + "]");
-		}
-		
-		if ( !isLocal(aavm) ) {
-			String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
-			LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
-			lrprop.decreaseApplicationVMFrequency(requesterUri, aavm);
-		} else {
-			decreaseApplicationVMFrequency(aavm);
-		}
-	}
-
-	@Override
-	@Ring
-	public void increaseApplicationVMCores(String requesterUri, AllocatedApplicationVM aavm, Integer coreCount) throws Exception {
+	public Integer[] decreaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM aavm) throws Exception {
+		assert requesterUri != null;
+		assert aavm != null;
 		
 		if ( logicalResourcesProvider.uri.equals(requesterUri) ) {
 			logMessage("All logical resources providers have been requested. Unfortunately, the allocated AVM seems orphane.");
@@ -555,15 +687,18 @@ implements	LogicalResourcesProviderManagementI,
 		if ( !isLocal(aavm) ) {
 			String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 			LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
-			lrprop.increaseApplicationVMCores(requesterUri, aavm, coreCount);
+			return lrprop.decreaseApplicationVMFrequency(requesterUri, aavm);
 		} else {
-			increaseApplicationVMCores(aavm, coreCount);
+			return decreaseApplicationVMFrequency(aavm);
 		}
 	}
 
 	@Override
 	@Ring
-	public void decreaseApplicationVMCores(String requesterUri, AllocatedApplicationVM aavm, Integer coreCount) throws Exception {
+	public Integer increaseApplicationVMCores(String requesterUri, AllocatedApplicationVM aavm, Integer coreCount) throws Exception {
+		assert requesterUri != null;
+		assert aavm != null;
+		assert coreCount > 0;
 		
 		if ( logicalResourcesProvider.uri.equals(requesterUri) ) {
 			logMessage("All logical resources providers have been requested. Unfortunately, the allocated AVM seems orphane.");
@@ -573,17 +708,42 @@ implements	LogicalResourcesProviderManagementI,
 		if ( !isLocal(aavm) ) {
 			String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 			LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
-			lrprop.decreaseApplicationVMCores(requesterUri, aavm, coreCount);
+			return lrprop.increaseApplicationVMCores(requesterUri, aavm, coreCount);
 		} else {
-			decreaseApplicationVMCores(aavm, coreCount);
+			return increaseApplicationVMCores(aavm, coreCount);
+		}
+	}
+
+	@Override
+	@Ring
+	public Integer decreaseApplicationVMCores(String requesterUri, AllocatedApplicationVM aavm, Integer coreCount) throws Exception {
+		assert requesterUri != null;
+		assert aavm != null;
+		assert coreCount > 0;
+		
+		if ( logicalResourcesProvider.uri.equals(requesterUri) ) {
+			logMessage("All logical resources providers have been requested. Unfortunately, the allocated AVM seems orphane.");
+			throw new OrphaneApplicationVMException(" Orphane application VM : [" + aavm.avmURI + "]");
+		}
+		
+		if ( !isLocal(aavm) ) {
+			String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
+			LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
+			return lrprop.decreaseApplicationVMCores(requesterUri, aavm, coreCount);
+		} else {
+			AllocatedApplicationVMCoreReleasingRequest aavmcrr = new AllocatedApplicationVMCoreReleasingRequest(requesterUri, aavm, coreCount);
+			aavmcrrs.add(aavmcrr);
+			return decreaseApplicationVMCores(aavm, coreCount);
 		}
 	}
 
 	@Override
 	@Ring
 	public AllocatedApplicationVM[] allocateApplicationVMs(String requesterUri, Integer avmCount) throws Exception {
+		assert requesterUri != null;
+		assert avmCount > 0;
 		
-		System.out.println("###### RQ : " + requesterUri + " count : " + avmCount );
+//		System.out.println("###### RQ : " + requesterUri + " count : " + avmCount );
 		
 		if ( logicalResourcesProvider.uri.equals(requesterUri) ) {
 			logMessage("All logical resources providers have been requested. "
@@ -601,22 +761,20 @@ implements	LogicalResourcesProviderManagementI,
 		AllocatedApplicationVM[] allocAVMs = new AllocatedApplicationVM[avmCount];
 		int preallocated = 0;
 		
-		System.out.println("avm count : " + avmCount);
-		System.out.println("waiting avm : " + waitingAVM.size());
-		System.out.println("refs avm : " + allocatedAVMs.size());
+//		System.out.println("avm count : " + avmCount);
+//		System.out.println("waiting avm : " + waitingAVM.size());
+//		System.out.println("refs avm : " + allocatedAVMs.size());
 		
 		if (waitingAVM.size() > 0) {
 			for ( int i = 0; i < avmCount && !waitingAVM.isEmpty(); i++, preallocated++) {
 				allocAVMs[i] = waitingAVM.remove(0);
 				logMessage("The waiting avm [" + allocAVMs[i].avmURI + "] was selected");
-				logMessage("The selected avm has (" + getAllocatedCores(allocAVMs[i]).size() + ") cores for running tasks");
+				logMessage("The selected avm has (" + lrpds.getAllocatedCores(allocAVMs[i]).size() + ") cores for running tasks");
 				
-				if ( getAllocatedCores(allocAVMs[i]).size() == 0 ) {
+				if ( lrpds.getAllocatedCores(allocAVMs[i]).size() == 0 ) {
 					PhysicalResourcesProviderServicesOutboundPort prpsop = (PhysicalResourcesProviderServicesOutboundPort) findPortFromURI(prpsopURI);
 					AllocatedCore[] acs = prpsop.allocateCores(1);
-					List<AllocatedCore> acsList = new ArrayList<>();
-					acsList.add(acs[0]);
-					setAllocatedCores(allocAVMs[i], allocatedCoreListToArray(acsList));
+					lrpds.addAllocatedCores(allocAVMs[i], acs);
 					String avmmopURI = logicalResourcesProvider.getPortConnectedTo(allocAVMs[i].avmmipURI);
 					ApplicationVMManagementOutboundPort avmmop = (ApplicationVMManagementOutboundPort) findPortFromURI(avmmopURI);
 					avmmop.allocateCores(acs);
@@ -625,27 +783,8 @@ implements	LogicalResourcesProviderManagementI,
 		}
 		
 		for ( int i = preallocated; i < avmCount; i++ ) {
-			AllocatedApplicationVM aavm = createAllocatedApplicationVM();
-			
-			try {
-				
-				PhysicalResourcesProviderServicesOutboundPort prpsop = (PhysicalResourcesProviderServicesOutboundPort) findPortFromURI(prpsopURI);
-				AllocatedCore[] acs = prpsop.allocateCores(1);
-				
-				createApplicationVM(aavm);
-				connectApplicationVM(aavm, getApplicationVMCoreReleasingNotificationOutboundPort(aavm));
-				
-				List<AllocatedCore> acsList = new ArrayList<>();
-				acsList.add(acs[0]);
-				setAllocatedCores(aavm, allocatedCoreListToArray(acsList));
-				
-				String avmmopURI = logicalResourcesProvider.getPortConnectedTo(aavm.avmmipURI);
-				ApplicationVMManagementOutboundPort avmmop = (ApplicationVMManagementOutboundPort) findPortFromURI(avmmopURI);
-				avmmop.allocateCores(acs);
-				allocAVMs[i] = aavm;
-				
-				logMessage( "A new application VM is created with " + acs.length + " cores allocated");
-				
+			try {			
+				allocAVMs[i] = createApplicationVM();
 			} catch (ExecutionException e) {
 				
 				if ( !e.getMessage().contains(NoCoreException.class.getCanonicalName()) ) {
@@ -674,7 +813,10 @@ implements	LogicalResourcesProviderManagementI,
 
 	@Override
 	@Ring
-	public void releaseApplicationVMs(String requesterUri, AllocatedApplicationVM[] avms) throws Exception {
+	public AllocatedApplicationVM[] releaseApplicationVMs(String requesterUri, AllocatedApplicationVM[] avms) throws Exception {
+		assert requesterUri != null;
+		assert avms != null;
+		assert avms.length > 0;
 		
 		if ( logicalResourcesProvider.uri.equals(requesterUri) ) {
 			logMessage("All logical resources providers have been requested. Unfortunately, no AVM allocable");
@@ -692,25 +834,35 @@ implements	LogicalResourcesProviderManagementI,
 			}
 		}
 		
-		System.out.println(provided.size());
-		System.out.println(notProvided.size());
+//		System.out.println(provided.size());
+//		System.out.println(notProvided.size());
 		
-		if (provided.size() > 0)
-			releaseApplicationVMs(allocatedApplicationVMListToArray(provided));
+		List<AllocatedApplicationVM> released = new ArrayList<>();
+		
+		if (provided.size() > 0) {
+			AllocatedApplicationVM[] aavms = releaseApplicationVMs(allocatedApplicationVMListToArray(provided));
+			released.addAll(allocatedApplicationVMArrayToList(aavms));
+		}
 		
 		String lrpropURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_REQUESTING_OUTBOUND_PORT);
 		LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
 		
 		if (notProvided.size() > 0) {
-			lrprop.releaseApplicationVMs(requesterUri, allocatedApplicationVMListToArray(notProvided));
+			AllocatedApplicationVM[] aavms = lrprop.releaseApplicationVMs(requesterUri, allocatedApplicationVMListToArray(notProvided));
+			released.addAll(allocatedApplicationVMArrayToList(aavms));
 		}
+		
+		return allocatedApplicationVMListToArray(released);
 		
 	}
 	
 	@Override
 	@Ring
-	public void connectApplicationVM(String requesterUri, AllocatedApplicationVM aavm, AllocatedDispatcher adsp)
+	public void connectApplicationVM(String requesterUri, AllocatedApplicationVM aavm, AllocatedDispatcher adsp)	
 			throws Exception {
+		assert requesterUri != null;
+		assert aavm != null;
+		assert adsp != null;
 		
 		if ( logicalResourcesProvider.uri.equals(requesterUri) ) {
 			logMessage("All logical resources providers have been requested. Unfortunately, AVM seems not exist");
@@ -722,13 +874,16 @@ implements	LogicalResourcesProviderManagementI,
 			LogicalResourcesProviderRequestingOutboundPort lrprop = (LogicalResourcesProviderRequestingOutboundPort) findPortFromURI(lrpropURI);
 			lrprop.connectApplicationVM(requesterUri, aavm, adsp);
 		} else {
-			disconnectApplicationVM(aavm, adsp);
+			connectApplicationVM(aavm, adsp);
 		}
 	}
 	
 	@Override
 	public void disconnectApplicationVM(String requesterUri, AllocatedApplicationVM aavm, AllocatedDispatcher adsp)
 			throws Exception {
+		assert requesterUri != null;
+		assert aavm != null;
+		assert adsp != null;
 		
 		if ( logicalResourcesProvider.uri.equals(requesterUri) ) {
 			logMessage("All logical resources providers have been requested. Unfortunately, AVM seems not exist");
@@ -746,6 +901,7 @@ implements	LogicalResourcesProviderManagementI,
 
 	@Override
 	public boolean isLocal(Object o) throws Exception {
+		assert o != null;
 		return logicalResourcesProvider.findByURI( ((AllocatedApplicationVM) o).avmURI ) != null;
 	}
 	
@@ -757,18 +913,28 @@ implements	LogicalResourcesProviderManagementI,
 		return lrpURI + " : " + tag.toString() + "_" + (logicalResourcesProvider.findByURI(Branch.LOGICAL_RESOURCES_PROVIDERS).children.size() + 1);
 	}
 	
+	String generatePerformanceControllerUri(String lrpURI, Object tag) {
+		return lrpURI + " : " + tag.toString() + "_" + (logicalResourcesProvider.findByURI(Branch.PERFORMANCE_CONTROLLER).children.size() + 1);
+	}
+	
+	String generateLogicalResourcesProviderNotifyBackUri(String lrpURI, Object tag) {
+		return lrpURI + " : " + tag.toString() + "_" + (logicalResourcesProvider.findByURI(Branch.LOGICAL_RESOURCES_PROVIDERS_NOTIFY_BACK).children.size() + 1);
+	}
+	
 	String generateApplicationVMUri(String avmURI, Object tag) {
 		return avmURI + " : " + tag.toString() + "_" + (logicalResourcesProvider.findByURI(Branch.APPLICATION_VM).children.size() + 1);
 	}
-	
+		
 	/**
-	 * Création d'une {@link AllocatedApplicationVM} 
+	 * Création d'un AVM à partir des informations de l'AllocatedApplicationVM
 	 * 
+	 * @param aavm
 	 * @return
 	 * @throws Exception
 	 */
 	
-	AllocatedApplicationVM createAllocatedApplicationVM() throws Exception {
+	AllocatedApplicationVM createApplicationVM() throws Exception {
+		
 		String	avmURI = generateApplicationVMUri(logicalResourcesProvider.uri, Tag.APPLICATION_VM),
 				avmmipURI = generateApplicationVMUri(avmURI, Tag.APPLICATION_VM_MANAGEMENT_INBOUND_PORT),
 				avmrsipURI = generateApplicationVMUri(avmURI, Tag.REQUEST_SUBMISSION_INBOUND_PORT),
@@ -784,19 +950,6 @@ implements	LogicalResourcesProviderManagementI,
 				avmrnopURI, 
 				avmcripURI, 
 				avmcrnopURI);
-		
-		return aavm;
-	}
-	
-	/**
-	 * Création d'un AVM à partir des informations de l'AllocatedApplicationVM
-	 * 
-	 * @param aavm
-	 * @return
-	 * @throws Exception
-	 */
-	
-	AllocatedApplicationVM createApplicationVM(AllocatedApplicationVM aavm) throws Exception {
 		
 		ComponentDataNode avmdn = new ComponentDataNode(aavm.avmURI)
 				.addPort(aavm.avmmipURI)
@@ -817,26 +970,8 @@ implements	LogicalResourcesProviderManagementI,
 		AbstractCVM.theCVM.addDeployedComponent(avm);
 		avm.start();
 		
-		setApplicationVMCoreReleasingNotificationOutboundPort(aavm, (CoreReleasingNotificationOutboundPort) avm.findPortFromURI(aavm.avmcrnopURI));
-		setApplicationVMRequestNotificationOutboundPort(aavm, (RequestNotificationOutboundPort)  avm.findPortFromURI(aavm.avmrnopURI));
-		
-		return aavm;
-	}
-	
-	/**
-	 * Connecte le fournisseur de ressources logiques à l'avm.
-	 * Les ports concernés sont ceux de gestion, libération de coeurs et de notification en cas de libération coeurs.
-	 * 
-	 * @param aavm
-	 * @param avmcrnop
-	 * @throws Exception
-	 */
-	
-	void connectApplicationVM(AllocatedApplicationVM aavm, CoreReleasingNotificationOutboundPort avmcrnop) throws Exception {
-		String	avmURI = aavm.avmURI,
-				avmmipURI = aavm.avmmipURI,
-				avmcripURI = aavm.avmcripURI,
-				avmcrnopURI = aavm.avmcrnopURI;
+		RequestNotificationOutboundPort rnop = (RequestNotificationOutboundPort) avm.findPortFromURI(aavm.avmrnopURI);
+		CoreReleasingNotificationOutboundPort crnop = (CoreReleasingNotificationOutboundPort) avm.findPortFromURI(aavm.avmcrnopURI);
 		
 		if ( !requiredInterfaces.contains(ApplicationVMManagementI.class) )
 			requiredInterfaces.add(ApplicationVMManagementI.class);
@@ -873,14 +1008,44 @@ implements	LogicalResourcesProviderManagementI,
 		addPort(avmcrnip);
 		avmcrnip.publishPort();
 		
-		avmcrnop.doConnection(avmcrnipURI, CoreReleasingNotificationConnector.class.getCanonicalName());
+		crnop.doConnection(avmcrnipURI, CoreReleasingNotificationConnector.class.getCanonicalName());
 		
-		ComponentDataNode avmdn = logicalResourcesProvider.findByURI(avmURI);
 		avmdn.trustedConnect(avmcrnopURI, avmcrnipURI);
+		
+		String prpsopURI = logicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_SERVICES_OUTBOUND_PORT);
+		PhysicalResourcesProviderServicesOutboundPort prpsop = (PhysicalResourcesProviderServicesOutboundPort) findPortFromURI(prpsopURI);
+		AllocatedCore[] acs = prpsop.allocateCores(1);
+		
+		avmmop.allocateCores(acs);
+		
+		lrpds.addAllocatedApplicationVM(aavm, acs, rnop, crnop);		
+		
+		return aavm;
+	}
+	
+	/**
+	 * Connecte le fournisseur de ressources logiques à l'avm.
+	 * Les ports concernés sont ceux de gestion, libération de coeurs et de notification en cas de libération coeurs.
+	 * 
+	 * @param aavm
+	 * @param avmcrnop
+	 * @throws Exception
+	 */
+	
+	void connectApplicationVM(AllocatedApplicationVM aavm, CoreReleasingNotificationOutboundPort avmcrnop) throws Exception {
+		assert aavm != null;
+		assert avmcrnop != null;
+		
+		
 	}
 
 	@Override
 	public void acceptCoreReleasing(String avmURI, AllocatedCore allocatedCore) throws Exception {
+		assert avmURI != null;
+		assert allocatedCore != null;
+		
+		showCorePerAavm(); // TODO
+		
 		logMessage("[" + avmURI + "] release [" + allocatedCore.processorURI + "]'s core (" + allocatedCore.coreNo + ")");
 		
 		String prpsopURI = logicalResourcesProvider.getPortLike(Tag.PHYSICAL_RESOURCES_PROVIDER_SERVICES_OUTBOUND_PORT);
@@ -891,10 +1056,53 @@ implements	LogicalResourcesProviderManagementI,
 		prpsop.releaseCores(acsArray);	
 		
 		AllocatedApplicationVM aavm = null;
-		for ( AllocatedApplicationVM e : allocatedAVMs.keySet())
+		for ( AllocatedApplicationVM e : lrpds.getAllocatedApplicationVMSet())
 			if (e.avmURI.equals(avmURI))
 				aavm = e;
-		getAllocatedCores(aavm).removeAll(allocatedCoreArrayToList(acsArray));			
+		
+		logMessage("LRPDS RELEASING BEFORE");
+		
+		lrpds.removeAllocatedCores(aavm, acsArray);
+		
+		logMessage("LRPDS RELEASING PASSED");
+		
+		showCorePerAavm();
+		
+		/**
+		 * Ici nous vérifions qu'il ne s'agit pas d'un demande de libération de coeurs issue d'un autre fournisseur
+		 * de resources logiques. Car dans le cas d'une saturation d'un fournisseur, une avm étrangère peut être 
+		 * attribue pour palier le manque. Cette avm étrangère va surement faire l'objet de manipulation de coeurs
+		 * et de ce fait il sera nécessaire de retransmettre la notification de libération au détenteur de cette avm. 
+		 * Dans ce cas il va falloir sauvegarder cette requête pour permettre de retransmettre l'évenement de 
+		 * désallocation de coeur sur l'AVM distante. Cette opération réalise une notification en anneau à la recherche
+		 * de l'émetteur de la requête de libération.
+		 */
+		
+		AllocatedApplicationVMCoreReleasingRequest target = null;
+		for (AllocatedApplicationVMCoreReleasingRequest aavmcrr : aavmcrrs) {
+			if ( aavmcrr.aavm.avmURI.equals(avmURI) ) {
+				target = aavmcrr;
+				String lrpcrnbopURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_CORE_RELEASING_NOTIFY_BACK_OUTBOUND_PORT);
+				LogicalResourcesProviderCoreReleasingNotifyBackOutboundPort lrpcrnbop = (LogicalResourcesProviderCoreReleasingNotifyBackOutboundPort) findPortFromURI(lrpcrnbopURI);
+				lrpcrnbop.notifyBackCoreReleasing(aavmcrr.requesterUri, logicalResourcesProvider.uri, aavmcrr.aavm, allocatedCore);
+				
+				break;
+			}
+		}
+		
+		if ( target != null ) {
+			target.coreCount--;
+			
+			System.out.println("TARGET");
+			
+			if ( target.coreCount == 0 )
+				aavmcrrs.remove(target);
+			
+		} else {
+			String lrpcrnopURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_CORE_RELEASING_NOTIFICATION_OUTBOUND_PORT);
+			LogicalResourcesProviderCoreReleasingNotificationOutboundPort lrpcrnop = (LogicalResourcesProviderCoreReleasingNotificationOutboundPort) findPortFromURI(lrpcrnopURI);
+			lrpcrnop.notifyCoreReleasing(aavm);
+		}
 	}
 	
 	public void logReferencedApplicationVM() {
@@ -912,6 +1120,8 @@ implements	LogicalResourcesProviderManagementI,
 	}
 	
 	public AllocatedCore[] allocatedCoreListToArray(List<AllocatedCore> list) {
+		assert !list.contains(null);
+		
 		AllocatedCore[] acs = new AllocatedCore[list.size()];
 		
 		for ( int i = 0; i < list.size(); i++ ) {
@@ -921,18 +1131,24 @@ implements	LogicalResourcesProviderManagementI,
 		return acs;
 	}
 	
-	public List<AllocatedCore> allocatedCoreArrayToList(AllocatedCore[] array) {
+	public List<AllocatedCore> allocatedCoreArrayToList(AllocatedCore[] array) throws Exception {
+		assert array != null;
+		
 		List<AllocatedCore> acs = new ArrayList<>();
 		
 		for ( int i = 0; i < array.length; i++ ) {
-			if (array[i] != null)
-				acs.add(array[i]);
+			if (array[i] == null)
+				throw new Exception("Null allocated application VM the list");
+			acs.add(array[i]);
 		}
 		
 		return acs;
 	}
 	
 	public AllocatedApplicationVM[] allocatedApplicationVMListToArray(List<AllocatedApplicationVM> list) {
+		assert list != null;
+		assert !list.contains(null);
+		
 		AllocatedApplicationVM[] acs = new AllocatedApplicationVM[list.size()];
 		
 		for ( int i = 0; i < list.size(); i++ ) {
@@ -942,7 +1158,9 @@ implements	LogicalResourcesProviderManagementI,
 		return acs;
 	}
 	
-	public List<AllocatedApplicationVM> allocatedApplicationVMArrayToList(AllocatedApplicationVM[] array) {
+	public List<AllocatedApplicationVM> allocatedApplicationVMArrayToList(AllocatedApplicationVM[] array) throws Exception {
+		assert array != null;
+		
 		List<AllocatedApplicationVM> acs = new ArrayList<>();
 		
 		for ( int i = 0; i < array.length; i++ ) {
@@ -950,45 +1168,136 @@ implements	LogicalResourcesProviderManagementI,
 				acs.add(array[i]);
 		}
 		
+		assert !acs.contains(null);
+		
 		return acs;
 	}
 	
-	@SuppressWarnings("unchecked")
-	protected List<AllocatedCore> getAllocatedCores(AllocatedApplicationVM aavm) {
-		Object object = allocatedAVMs.get(aavm).get(AAVMDataType.ALLOCATED_CORES);
-		List<AllocatedCore> list = (List<AllocatedCore>) object;
-		return list;
+
+	
+	protected void showCorePerAavm() throws Exception {
+		StringBuilder sb = new StringBuilder();
+		int i = 1;
 		
-	}
-	
-	protected void setAllocatedCores(AllocatedApplicationVM aavm, AllocatedCore[] acs) {
-		Map<AAVMDataType, Object> map = new HashMap<>();
-		map.put(AAVMDataType.ALLOCATED_CORES, allocatedCoreArrayToList(acs));
-		allocatedAVMs.put(aavm, map);
-	}
-	
-	protected CoreReleasingNotificationOutboundPort getApplicationVMCoreReleasingNotificationOutboundPort(AllocatedApplicationVM aavm) {
-		Object object = allocatedAVMs.get(aavm).get(AAVMDataType.CORE_RELEASING_NOTIFICATION_OUTBOUND_PORT);
-		CoreReleasingNotificationOutboundPort port = (CoreReleasingNotificationOutboundPort) object;
-		return port;	
-	}
-	
-	protected void setApplicationVMCoreReleasingNotificationOutboundPort(AllocatedApplicationVM aavm, CoreReleasingNotificationOutboundPort avmcrop) {
-		Map<AAVMDataType, Object> map = new HashMap<>();
-		map.put(AAVMDataType.CORE_RELEASING_NOTIFICATION_OUTBOUND_PORT, avmcrop);
-		allocatedAVMs.put(aavm, map);
-	}
-	
-	protected RequestNotificationOutboundPort getApplicationVMRequestNotificationOutboundPort(AllocatedApplicationVM aavm) {
-		Object object = allocatedAVMs.get(aavm).get(AAVMDataType.REQUEST_NOTIFICATION_OUTBOUND_PORT);
-		RequestNotificationOutboundPort port = (RequestNotificationOutboundPort) object;
-		return port;	
-	}
-	
-	protected void setApplicationVMRequestNotificationOutboundPort(AllocatedApplicationVM aavm, RequestNotificationOutboundPort avmrnop) {
-		Map<AAVMDataType, Object> map = new HashMap<>();
-		map.put(AAVMDataType.REQUEST_NOTIFICATION_OUTBOUND_PORT, avmrnop);
-		allocatedAVMs.put(aavm, map);
+		sb.append("\t").append(logicalResourcesProvider.uri).append(" CORES PER AVM : \n\n");
+		
+		for (AllocatedApplicationVM aavm : lrpds.getAllocatedApplicationVMSet()) {
+			List<AllocatedCore> list = (List<AllocatedCore>) lrpds.getAllocatedCores(aavm);
+			
+			sb.append("\t\t").append(aavm.avmURI);
+			if (waitingAVM.contains(aavm))
+				sb.append("(Zzz)");
+			sb.append(" : ").append(list.size());
+			if ( (i++ % 4) == 0 )
+				sb.append("\n");
+		}
+		sb.append("\n");
+		logMessage(sb.toString());
 	}
 
+	@Override
+	public void connectPerformanceController(PerformanceControllerPortsDataI pcpdi) throws Exception {		
+		assert pcpdi != null;
+		
+		String 	pcURI = pcpdi.getUri(),
+				pcrnipURI = pcpdi.getPerformanceControllerCoreReleasingNotificationInboundPortURI();
+		ComponentDataNode pcdn = new ComponentDataNode(pcURI)
+				.addPort(pcrnipURI);
+		String 	lrpcrnopURI = generatePerformanceControllerUri(logicalResourcesProvider.uri, Tag.LOGICAL_RESOURCES_PROVIDER_CORE_RELEASING_NOTIFICATION_OUTBOUND_PORT);
+
+		logicalResourcesProvider.findByURI(Branch.PERFORMANCE_CONTROLLER).addChild(pcdn);
+
+		if ( !requiredInterfaces.contains(LogicalResourcesProviderCoreReleasingNotificationI.class) )
+			requiredInterfaces.add(LogicalResourcesProviderCoreReleasingNotificationI.class);
+				
+		LogicalResourcesProviderCoreReleasingNotificationOutboundPort lrpcnrop = 
+				new LogicalResourcesProviderCoreReleasingNotificationOutboundPort(
+						lrpcrnopURI,
+						LogicalResourcesProviderCoreReleasingNotificationI.class,
+						this);
+		addPort(lrpcnrop);
+		lrpcnrop.publishPort();
+		lrpcnrop.doConnection(pcrnipURI, LogicalResourcesProviderCoreReleasingNotificationConnector.class.getCanonicalName());		
+
+		logicalResourcesProvider.trustedConnect(lrpcrnopURI, pcrnipURI);
+	}
+
+	@Override
+	public void disconnectPerformanceController(PerformanceControllerPortsDataI pcpdi) throws Exception {
+		assert pcpdi != null;
+		
+		ComponentDataNode pcdn = logicalResourcesProvider.findByURI(pcpdi.getUri());
+		String 	pccrnipURI = pcpdi.getPerformanceControllerCoreReleasingNotificationInboundPortURI(),
+				lrpcrnopURI = pcdn.getPortConnectedTo(pccrnipURI);
+		LogicalResourcesProviderCoreReleasingNotificationOutboundPort lrpcnrop = 
+				(LogicalResourcesProviderCoreReleasingNotificationOutboundPort) findPortFromURI(lrpcrnopURI);
+		lrpcnrop.doDisconnection();
+		lrpcnrop.destroyPort();
+
+		logicalResourcesProvider.disconnect(lrpcrnopURI);
+		logicalResourcesProvider.findByURI(Branch.PERFORMANCE_CONTROLLER).removeChild(pcdn);
+	}
+
+	@Override
+	public void connectLogicalResourcesProviderNotifyBack(LogicalResourcesProviderPortsDataI lrppdi) throws Exception {
+		assert lrppdi != null;
+		
+		String 	lrpURI = lrppdi.getUri(),
+				lrpcrnbipURI = lrppdi.getLogicalResourcesProviderCoreReleasingNotifyBackInboundPort();
+		ComponentDataNode lrpdn = new ComponentDataNode(lrpURI)
+				.addPort(lrpcrnbipURI);
+		String 	lrpcrnbopURI = generatePerformanceControllerUri(logicalResourcesProvider.uri, Tag.LOGICAL_RESOURCES_PROVIDER_CORE_RELEASING_NOTIFY_BACK_OUTBOUND_PORT);
+
+		logicalResourcesProvider.findByURI(Branch.LOGICAL_RESOURCES_PROVIDERS_NOTIFY_BACK).addChild(lrpdn);
+
+		if ( !requiredInterfaces.contains(LogicalResourcesProviderCoreReleasingNotifyBackI.class) )
+			requiredInterfaces.add(LogicalResourcesProviderCoreReleasingNotifyBackI.class);
+				
+		LogicalResourcesProviderCoreReleasingNotifyBackOutboundPort lrpcrnbop = 
+				new LogicalResourcesProviderCoreReleasingNotifyBackOutboundPort(
+						lrpcrnbopURI,
+						LogicalResourcesProviderCoreReleasingNotifyBackI.class,
+						this);
+		addPort(lrpcrnbop);
+		lrpcrnbop.publishPort();
+		lrpcrnbop.doConnection(lrpcrnbipURI, LogicalResourcesProviderCoreReleasingNotifyBackConnector.class.getCanonicalName());		
+
+		logicalResourcesProvider.trustedConnect(lrpcrnbopURI, lrpcrnbipURI);
+	}
+
+	@Override
+	public void disconnectLogicalResourcesProviderNotifyBack(LogicalResourcesProviderPortsDataI lrppdi)
+			throws Exception {
+		assert lrppdi != null;
+		
+		ComponentDataNode lrpdn = logicalResourcesProvider.findByURI(lrppdi.getUri());
+		String 	lrpcrnbipURI = lrppdi.getLogicalResourcesProviderCoreReleasingNotifyBackInboundPort(),
+				lrpcrnbopURI = lrpdn.getPortConnectedTo(lrpcrnbipURI);
+		LogicalResourcesProviderCoreReleasingNotificationOutboundPort lrpcrnbop = 
+				(LogicalResourcesProviderCoreReleasingNotificationOutboundPort) findPortFromURI(lrpcrnbopURI);
+		lrpcrnbop.doDisconnection();
+		lrpcrnbop.destroyPort();
+
+		logicalResourcesProvider.disconnect(lrpcrnbopURI);
+		logicalResourcesProvider.findByURI(Branch.PERFORMANCE_CONTROLLER).removeChild(lrpdn);
+	}
+
+	@Override
+	public void acceptBackCoreReleasing(String requesterUri, String answererUri, AllocatedApplicationVM aavm, AllocatedCore ac)
+			throws Exception {
+		if ( logicalResourcesProvider.uri.equals(answererUri) )
+			throw new Exception("No notify back target found in the ring");
+		if ( logicalResourcesProvider.uri.equals(requesterUri) ) {
+			String lrpcrnopURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_CORE_RELEASING_NOTIFICATION_OUTBOUND_PORT);
+			LogicalResourcesProviderCoreReleasingNotificationOutboundPort lrpcrnop = (LogicalResourcesProviderCoreReleasingNotificationOutboundPort) findPortFromURI(lrpcrnopURI);
+			lrpcrnop.notifyCoreReleasing(aavm);
+		} else {
+			String lrpcrnbopURI = logicalResourcesProvider.getPortLike(Tag.LOGICAL_RESOURCES_PROVIDER_CORE_RELEASING_NOTIFY_BACK_OUTBOUND_PORT);
+			LogicalResourcesProviderCoreReleasingNotifyBackOutboundPort lrpcrnbop = (LogicalResourcesProviderCoreReleasingNotifyBackOutboundPort) findPortFromURI(lrpcrnbopURI);
+			lrpcrnbop.notifyBackCoreReleasing(requesterUri, answererUri, aavm, ac);
+		}
+	}
+
+	
+	
 }

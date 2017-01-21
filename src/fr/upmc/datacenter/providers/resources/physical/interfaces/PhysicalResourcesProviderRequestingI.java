@@ -12,56 +12,62 @@ public interface PhysicalResourcesProviderRequestingI extends RequestingI, Offer
 	 * 
 	 * @param processorURI
 	 * @param coreNo
+	 * @return TODO
 	 * @throws Exception
 	 */
 	
-	public void increaseCoreFrenquency(String requesterUri, AllocatedCore ac) throws Exception;
+	public Integer increaseCoreFrenquency(String requesterUri, AllocatedCore ac) throws Exception;
 	
 	/**
 	 * Permet de diminuer la fréquence d'un coeur de processeur.
 	 * 
 	 * @param processorURI
 	 * @param coreNo
+	 * @return TODO
 	 * @throws Exception
 	 */
 	
-	public void decreaseCoreFrenquency(String requesterUri, AllocatedCore ac) throws Exception;
+	public Integer decreaseCoreFrenquency(String requesterUri, AllocatedCore ac) throws Exception;
 	
 	/**
 	 * Permet d'augmenter la fréquence d'un processeur entier.
 	 * 
 	 * @param processorURI
+	 * @return TODO
 	 * @throws Exception
 	 */
 	
-	public void increaseProcessorFrenquency(String requesterUri, AllocatedCore ac) throws Exception;
+	public Integer[] increaseProcessorFrenquency(String requesterUri, AllocatedCore ac) throws Exception;
 	
 	/**
 	 * Permet de diminuer la fréquence d'un processeur entier.
 	 * 
 	 * @param processorURI
+	 * @return TODO
 	 * @throws Exception
 	 */
 	
-	public void decreaseProcessorFrenquency(String requesterUri, AllocatedCore ac) throws Exception;
+	public Integer[] decreaseProcessorFrenquency(String requesterUri, AllocatedCore ac) throws Exception;
 	
 	/**
 	 * Permet de d'augmenter la fréquence d'un ordinateur entier.
 	 * 
 	 * @param computerURI
+	 * @return TODO
 	 * @throws Exception
 	 */
 	
-	public void increaseComputerFrenquency(String requesterUri, AllocatedCore ac) throws Exception;
+	public Integer[][] increaseComputerFrenquency(String requesterUri, AllocatedCore ac) throws Exception;
 	
 	/**
 	 * Permet de diminuer la fréquence d'un ordinateur entier.
 	 * 
 	 * @param computerURI
+	 * @return TODO
 	 * @throws Exception
 	 */
 	
-	public void decreaseComputerFrenquency(String requesterUri, AllocatedCore ac) throws Exception;
+	public Integer[][] decreaseComputerFrenquency(String requesterUri, AllocatedCore ac) throws Exception;
 
 	/**
 	 * Permet l'allocation d'un certain nombre de coeurs sur les ordinateurs disponibles.
@@ -77,9 +83,10 @@ public interface PhysicalResourcesProviderRequestingI extends RequestingI, Offer
 	 * Permet de la libération d'une liste de coeurs alloués.
 	 * 
 	 * @param allocatedCores
+	 * @return TODO
 	 * @throws Exception
 	 */
 	
-	public void releaseCores(String requesterUri, AllocatedCore[] allocatedCores) throws Exception;
+	public AllocatedCore[] releaseCores(String requesterUri, AllocatedCore[] allocatedCores) throws Exception;
 	
 }

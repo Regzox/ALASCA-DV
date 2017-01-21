@@ -21,39 +21,43 @@ extends 	RequiredI,
 	 * Augmente la fréquence des coeurs alloué par l'{@link AllocatedApplicationVM} passé en paramètre. 
 	 * 
 	 * @param avm
+	 * @return TODO
 	 * @throws Exception TODO
 	 */
 	
-	void increaseApplicationVMFrequency(AllocatedApplicationVM avm) throws Exception;
+	Integer[] increaseApplicationVMFrequency(AllocatedApplicationVM avm) throws Exception;
 	
 	/**
 	 * Diminue la fréquence des coeurs alloué par l'{@link AllocatedApplicationVM} passé en paramètre.
 	 * 
 	 * @param avm
+	 * @return TODO
 	 * @throws Exception TODO
 	 */
 	
-	void decreaseApplicationVMFrequency(AllocatedApplicationVM avm) throws Exception;
+	Integer[] decreaseApplicationVMFrequency(AllocatedApplicationVM avm) throws Exception;
 	
 	/**
 	 * Augmente le nombre de coeurs alloués à une même {@link AllocatedApplicationVM}.
 	 * 
 	 * @param avm
 	 * @param coreCount
+	 * @return TODO
 	 * @throws Exception TODO
 	 */
 	
-	void increaseApplicationVMCores(AllocatedApplicationVM avm, Integer coreCount) throws Exception;
+	Integer increaseApplicationVMCores(AllocatedApplicationVM avm, Integer coreCount) throws Exception;
 	
 	/**
 	 * Diminue le nombre de coeurs alloués à une même {@link AllocatedApplicationVM}.
 	 * 
 	 * @param avm
 	 * @param coreCount
+	 * @return TODO
 	 * @throws Exception TODO
 	 */
 	
-	void decreaseApplicationVMCores(AllocatedApplicationVM avm, Integer coreCount) throws Exception;
+	Integer decreaseApplicationVMCores(AllocatedApplicationVM avm, Integer coreCount) throws Exception;
 	
 	/**
 	 * Permet l'allocation d'un certain nombre de {@link AllocatedApplicationVM}.
@@ -68,10 +72,11 @@ extends 	RequiredI,
 	/**
 	 * Permet la désallocation d'un certain nombre de {@link AllocatedApplicationVM}.
 	 * @param avms
+	 * @return TODO
 	 * @throws Exception TODO
 	 */
 	
-	void releaseApplicationVMs(AllocatedApplicationVM[] avms) throws Exception;
+	AllocatedApplicationVM[] releaseApplicationVMs(AllocatedApplicationVM[] avms) throws Exception;
 	
 	/**
 	 * Permet de réalisé la connection du port de sortie de l'avm concernée au port d'entrée du répartiteur concerné.

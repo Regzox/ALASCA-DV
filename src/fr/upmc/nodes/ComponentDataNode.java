@@ -139,28 +139,32 @@ public class ComponentDataNode {
 		sb.append("\n\t");
 		sb.append("PARENTS : ");
 		for (ComponentDataNode parent : parents) {
-			sb.append("\n\t\t");
+			sb.append("\n\t\t(");
 			sb.append(parent.uri);
+			sb.append(")");
 		}
 		sb.append("\n\t");
 		sb.append("CHILDREN : ");
 		for (ComponentDataNode child : children) {
-			sb.append("\n\t\t");
+			sb.append("\n\t\t(");
 			sb.append(child.uri);
+			sb.append(")");
 		}
 		sb.append("\n\t");
 		sb.append("PORTS : ");
 		for (String port : ports) {
-			sb.append("\n\t\t");
+			sb.append("\n\t\t[");
 			sb.append(port);
+			sb.append("]");
 		}
 		sb.append("\n\t");
 		sb.append("CONNECTIONS : ");
 		for (String port : connections.keySet()) {
-			sb.append("\n\t\t");
+			sb.append("\n\t\t[");
 			sb.append(port);
-			sb.append(" : ");
+			sb.append("] : [");
 			sb.append(connections.get(port));
+			sb.append("]");
 		}
 		return sb.toString();
 	}

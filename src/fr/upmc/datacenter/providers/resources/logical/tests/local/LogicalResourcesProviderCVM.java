@@ -38,7 +38,8 @@ public class LogicalResourcesProviderCVM extends AbstractCVM {
 	lrpripURI_A = "lrprip_A",
 	lrpropURI_A = "lrprop_A",
 	lrpsipURI_A = "lrpsip_A",
-	lrpsopURI_A = "lrpsop_A";
+	lrpsopURI_A = "lrpsop_A",
+	lrpcrnbipURI_A = "lrpcrnbip_A";
 	
 	public final String
 	lrpURI_B = "lrp_B",
@@ -47,7 +48,8 @@ public class LogicalResourcesProviderCVM extends AbstractCVM {
 	lrpripURI_B = "lrprip_B",
 	lrpropURI_B = "lrprop_B",
 	lrpsipURI_B = "lrpsip_B",
-	lrpsopURI_B = "lrpsop_B";
+	lrpsopURI_B = "lrpsop_B",
+	lrpcrnbipURI_B = "lrpcrnbip_B";
 	
 	public final String 	
 	prpURI_A = "prp_A",
@@ -94,11 +96,11 @@ public class LogicalResourcesProviderCVM extends AbstractCVM {
 	public LogicalResourcesProviderCVM() throws Exception {
 		super();
 
-		lrp_A = new LogicalResourceProvider(lrpURI_A, lrpmipURI_A, lrpripURI_A, lrpsipURI_A);
+		lrp_A = new LogicalResourceProvider(lrpURI_A, lrpmipURI_A, lrpripURI_A, lrpsipURI_A, lrpcrnbipURI_A);
 		lrp_A.toggleLogging();
 		lrp_A.toggleTracing();
 		
-		lrp_B = new LogicalResourceProvider(lrpURI_B, lrpmipURI_B, lrpripURI_B, lrpsipURI_B);
+		lrp_B = new LogicalResourceProvider(lrpURI_B, lrpmipURI_B, lrpripURI_B, lrpsipURI_B, lrpcrnbipURI_B);
 		lrp_B.toggleLogging();
 		lrp_B.toggleTracing();
 		
@@ -223,7 +225,8 @@ public class LogicalResourcesProviderCVM extends AbstractCVM {
 						lrpURI_A, 
 						lrpmipURI_A, 
 						lrpripURI_A, 
-						lrpsipURI_A);
+						lrpsipURI_A,
+						lrpcrnbipURI_A);
 		
 		
 		lrpsop_A.doConnection(lrpsipURI_A, LogicalResourcesProviderServicesConnector.class.getCanonicalName());
@@ -246,7 +249,8 @@ public class LogicalResourcesProviderCVM extends AbstractCVM {
 						lrpURI_B, 
 						lrpmipURI_B, 
 						lrpripURI_B, 
-						lrpsipURI_B);
+						lrpsipURI_B,
+						lrpcrnbipURI_B);
 		
 		
 		lrpsop_B.doConnection(lrpsipURI_B, LogicalResourcesProviderServicesConnector.class.getCanonicalName());
@@ -255,6 +259,9 @@ public class LogicalResourcesProviderCVM extends AbstractCVM {
 		
 		lrpmop_A.connectLogicalResourcesProvider(lrppdi_B);
 		lrpmop_B.connectLogicalResourcesProvider(lrppdi_A);
+		
+		lrpmop_A.connectLogicalResourcesProviderNotifyBack(lrppdi_B);
+		lrpmop_B.connectLogicalResourcesProviderNotifyBack(lrppdi_A);
 		
 		//////////////////////////////////////////////////////////////////////////////////////////////////
 		

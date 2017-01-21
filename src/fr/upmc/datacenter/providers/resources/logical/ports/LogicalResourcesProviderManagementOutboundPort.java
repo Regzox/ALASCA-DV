@@ -3,6 +3,7 @@ package fr.upmc.datacenter.providers.resources.logical.ports;
 import fr.upmc.components.ComponentI;
 import fr.upmc.components.ports.AbstractOutboundPort;
 import fr.upmc.datacenter.data.interfaces.LogicalResourcesProviderPortsDataI;
+import fr.upmc.datacenter.data.interfaces.PerformanceControllerPortsDataI;
 import fr.upmc.datacenter.data.interfaces.PhysicalResourcesProviderPortsDataI;
 import fr.upmc.datacenter.providers.resources.logical.interfaces.LogicalResourcesProviderManagementI;
 
@@ -41,4 +42,25 @@ implements LogicalResourcesProviderManagementI
 		( (LogicalResourcesProviderManagementI) this.connector).disconnectLogicalResourcesProvider(lrppdi);
 	}
 	
+	@Override
+	public void connectPerformanceController(PerformanceControllerPortsDataI pcpdi) throws Exception {
+		( (LogicalResourcesProviderManagementI) this.connector).connectPerformanceController(pcpdi);
+		
+	}
+
+	@Override
+	public void disconnectPerformanceController(PerformanceControllerPortsDataI pcpdi) throws Exception {
+		( (LogicalResourcesProviderManagementI) this.connector).disconnectPerformanceController(pcpdi);
+	}
+	
+	@Override
+	public void connectLogicalResourcesProviderNotifyBack(LogicalResourcesProviderPortsDataI lrppdi) throws Exception {
+		( (LogicalResourcesProviderManagementI) this.connector).connectLogicalResourcesProviderNotifyBack(lrppdi);		
+	}
+
+	@Override
+	public void disconnectLogicalResourcesProviderNotifyBack(LogicalResourcesProviderPortsDataI lrppdi)
+			throws Exception {
+		( (LogicalResourcesProviderManagementI) this.connector).disconnectLogicalResourcesProviderNotifyBack(lrppdi);		
+	}
 }
