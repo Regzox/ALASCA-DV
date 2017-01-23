@@ -3,6 +3,14 @@ package fr.upmc.datacenter.data;
 import java.util.List;
 
 import fr.upmc.datacenter.data.interfaces.LogicalResourcesProviderPortsDataI;
+import fr.upmc.datacenter.providers.resources.logical.LogicalResourceProvider;
+
+/**
+ * Données de ports d'entrée du {@link LogicalResourceProvider}
+ * 
+ * @author Daniel RADEAU
+ *
+ */
 
 public class LogicalResourcesProviderPortsData 
 extends AbstractData

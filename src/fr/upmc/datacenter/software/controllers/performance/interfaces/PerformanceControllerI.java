@@ -6,6 +6,13 @@ import fr.upmc.datacenter.software.controllers.performance.AllocatedRequestGener
 import fr.upmc.datacenter.software.dispatcher.Dispatcher;
 import fr.upmc.datacenterclient.requestgenerator.RequestGenerator;
 
+/**
+ * Interface des opérations commune du contrôleur de performances
+ * 
+ * @author Daniel RADEAU
+ *
+ */
+
 public interface PerformanceControllerI {
 	
 	/**

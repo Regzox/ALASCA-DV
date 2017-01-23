@@ -6,6 +6,14 @@ import java.util.Set;
 import fr.upmc.datacenter.hardware.computer.extended.interfaces.ComputerCoreReleasingI;
 import fr.upmc.datacenter.hardware.computer.extended.ports.ComputerCoreReleasingInboundPort;
 
+/**
+ * Ordinateur étendu, ajoute un port qui exploite la fonctionnalité non implantée de libération de coeur
+ * prévu par le code fournit
+ * 
+ * @author Daniel RADEAU
+ *
+ */
+
 public class Computer 
 	extends 
 		fr.upmc.datacenter.hardware.computers.Computer

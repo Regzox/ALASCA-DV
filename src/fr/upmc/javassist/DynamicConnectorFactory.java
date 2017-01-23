@@ -13,6 +13,14 @@ import javassist.CtClass;
 import javassist.CtMethod;
 import javassist.NotFoundException;
 
+/**
+ * Générateur dynamique de connecteurs en fonction des interfaces implantées.
+ * A l'exécution du code, une classe de connecteur est générée et compilée à la volée juste à partir d'interfaces.
+ * 
+ * @author Daniel RADEAU
+ *
+ */
+
 public class DynamicConnectorFactory extends AbstractClassFactory {
 	
 	public static void main (String[] args) {

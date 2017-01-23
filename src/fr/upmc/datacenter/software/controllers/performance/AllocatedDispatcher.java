@@ -2,6 +2,13 @@ package fr.upmc.datacenter.software.controllers.performance;
 
 import java.io.Serializable;
 
+/**
+ * Jeton d'allocation du répartiteur de requêtes
+ * 
+ * @author Daniel RADEAU
+ *
+ */
+
 public class AllocatedDispatcher implements Serializable {
 
 	private static final long serialVersionUID = 4005788762743118140L;

@@ -60,7 +60,30 @@ import fr.upmc.nodes.ComponentDataNode;
  * <h2> Fournisseur de ressources logiques </h2>
  * 
  * <p>
- * 
+ * Son rôle est de fournir des ressources logiques ou autrement dit des machines virtuelles à d'éventuels composants clients.
+ * Directement relié à un fournisseur de ressources physiques, il va demander des ressources physiques pour attribuer des coeurs
+ * aux machines virtuelles qu'il va créer. Ces machines virtuelles sont produites à la demande des composants client.
+ * Toute machine virtuelle allouée peut être restituée par le composant client, il sera placé dans un vecteur de mise en attente
+ * et tous ses coeurs seront libérés.Pour ne par générer des machines virtuelles en masse, au moment d'une demande d'allocation 
+ * le fournisseur de ressources logiques extrait une machine virtuelle en attente et lui attribue un coeur si disponible. Sinon une 
+ * nouvelle machine vituelle est créée. Le fournisseur de ressources logiques possède les machine virtuelle qu'il créer et est le seul
+ * ayant droit de réaliser des actions dessus. Les clients et les autres fournisseurs de ressources logiques communiquent des jetons 
+ * d'allocation identifiant de manière unique une resource logique sur le réseau. 
+ * Un fournisseur de ressources logiques peut venir à manquer de ressources, celà est le cas quand so fournisseur de ressources physique
+ * n'est plus capable de lui attribuer des jetons d'allocation de coeurs. Pour remédier à ce problème, les différents fournisseurs de 
+ * ressources logiques doivent être connectés en anneau. De cette connexion en anneau nait la possibilité pour un fournisseur de ressources
+ * logiques de réquisitionner des ressources inexploitées issues d'autres fournisseurs pour son composant client.
+ * La totalité des méthodes de manipulation de machine virtuelle au sein du fournisseur de ressources logiques sont dites @Ring soit qu'elle
+ * permettent l'appel au réseau pour la réalisation de leurs tâches. Il est donc possible d'appeler une action sur une machine virtuelle détenue 
+ * par un autre fournisseur. Si jamais une action ammène à un tour complet du réseau en anneau, alors nous nous trouvons dans le cas où jeton
+ * d'allocation fournit ne retrouve pas son créateur et donc que la machine virtuelle à laquelle il fait référence est orpheline. Dans ce
+ * cas là, nous nous trouvons dans un cas incohérent et non gérable pouvant soit être induit par une erreur de connexion 
+ * (pas seulement un et un seul cycle ou cycle non hamiltonien) ou encore que tout simplement des fournisseurs sont tombées.
+ * Le fournisseur met en place un mécanisme non trivial comparativement aux connexions port à port réalisés par la plupart des composants
+ * d'écrit dans {@link LogicalResourcesProviderCoreReleasingNotifyBackI} permettant aux client direct d'être notifié d'une demande sur une 
+ * action sur machine virtuelle non locale. * 
+ *  
+ * </p>
  * @author Daniel RADEAU
  *
  */
@@ -290,7 +313,6 @@ implements	LogicalResourcesProviderManagementI,
 			
 			/** Capturer les uris des processors sur les quels l'AVM en question tourne **/
 			
-//			for (AllocatedCore ac : getAllocatedCores(aavm) ) {
 			for (AllocatedCore ac : lrpds.getAllocatedCores(aavm) ) {
 				if (processorsURI.contains(ac.processorURI))
 					continue;
@@ -309,7 +331,6 @@ implements	LogicalResourcesProviderManagementI,
 			List<Integer> avmFrequencies = new ArrayList<>();
 			
 			for ( String processorURI : processorsFrequencies.keySet() ) {
-//				for ( AllocatedCore ac : getAllocatedCores(aavm) ) {
 				for (AllocatedCore ac : lrpds.getAllocatedCores(aavm) ) {
 					if ( processorURI.equals(ac.processorURI) ) {
 						avmFrequencies.add(processorsFrequencies.get(processorURI)[ac.coreNo]);
@@ -346,7 +367,6 @@ implements	LogicalResourcesProviderManagementI,
 			
 			/** Capturer les uris des processors sur les quels l'AVM en question tourne **/
 			
-//			for (AllocatedCore ac : getAllocatedCores(aavm) ) {
 			for (AllocatedCore ac : lrpds.getAllocatedCores(aavm) ) {
 				if (processorsURI.contains(ac.processorURI))
 					continue;
@@ -365,7 +385,6 @@ implements	LogicalResourcesProviderManagementI,
 			List<Integer> avmFrequencies = new ArrayList<>();
 			
 			for ( String processorURI : processorsFrequencies.keySet() ) {
-//				for ( AllocatedCore ac : getAllocatedCores(aavm) ) {
 				for (AllocatedCore ac : lrpds.getAllocatedCores(aavm) ) {
 					if ( processorURI.equals(ac.processorURI) ) {
 						avmFrequencies.add(processorsFrequencies.get(processorURI)[ac.coreNo]);
@@ -403,14 +422,11 @@ implements	LogicalResourcesProviderManagementI,
 			
 			AllocatedCore[] acs = null;
 			try {
-//				acsArray = prpsop.allocateCores(allocatedCoreListToArray(getAllocatedCores(aavm)), coreCount);
 				acs = prpsop.allocateCores(lrpds.getAllocatedCores(aavm).toArray(new AllocatedCore[0]), coreCount);
 				logMessage("increased count by " + acs.length);
-//				getAllocatedCores(aavm).addAll(allocatedCoreArrayToList(acsArray));
 				lrpds.addAllocatedCores(aavm, acs);
 				avmmop.allocateCores(acs);
 			} catch (ExecutionException e) {
-//				e.printStackTrace();
 				if ( !e.getMessage().contains(NoCoreException.class.getCanonicalName()) )
 					throw e;
 				logMessage("Impossible to allocated core on the same computer because has not enought cores");
@@ -474,10 +490,6 @@ implements	LogicalResourcesProviderManagementI,
 		AllocatedApplicationVM[] allocAVMs = new AllocatedApplicationVM[avmCount];
 		int preallocated = 0;
 		
-//		System.out.println("avm count : " + avmCount);
-//		System.out.println("waiting avm : " + waitingAVM.size());
-//		System.out.println("refs avm : " + allocatedAVMs.size());
-		
 		if (waitingAVM.size() > 0) {
 			for ( int i = 0; i < avmCount && !waitingAVM.isEmpty(); i++, preallocated++) {
 				allocAVMs[i] = waitingAVM.remove(0);
@@ -539,7 +551,6 @@ implements	LogicalResourcesProviderManagementI,
 		List<AllocatedApplicationVM> notProvided = new ArrayList<>();
 		
 		for ( int i = 0; i < avms.length; i++ ) {
-//			System.out.println(avms[i].avmURI);
 			if ( isLocal(avms[i]) ) {
 				provided.add(avms[i]);
 			} else {
@@ -547,8 +558,6 @@ implements	LogicalResourcesProviderManagementI,
 			}
 		}
 		
-//		System.out.println("P : " + provided.size());
-//		System.out.println("NP : " + notProvided.size());
 		logReferencedApplicationVM();
 		
 		List<AllocatedApplicationVM> released = new ArrayList<>();
@@ -612,8 +621,6 @@ implements	LogicalResourcesProviderManagementI,
 				dspdn.addPort(adsp.dsprnipURI);
 			}
 			
-//			System.out.println(dspdn);
-			
 			ComponentDataNode avmdn = logicalResourcesProvider.findByURI(aavm.avmURI);
 			
 			avmrnop.doConnection(adsp.dsprnipURI, RequestNotificationConnector.class.getCanonicalName());
@@ -642,8 +649,6 @@ implements	LogicalResourcesProviderManagementI,
 			ComponentDataNode dspdn = logicalResourcesProvider.findByURI(adsp.dspURI);
 			ComponentDataNode avmdn = logicalResourcesProvider.findByURI(aavm.avmURI);
 			avmrnop.doDisconnection();
-//			System.out.println(avmdn);
-//			System.out.println(dspdn);
 			String dsprnipURI = avmdn.getPortConnectedTo(aavm.avmrnopURI);
 			avmdn.disconnect(aavm.avmrnopURI);
 			
@@ -656,8 +661,6 @@ implements	LogicalResourcesProviderManagementI,
 	public Integer[] increaseApplicationVMFrequency(String requesterUri, AllocatedApplicationVM aavm) throws Exception {
 		assert requesterUri != null;
 		assert aavm != null;
-		
-//		System.out.println(">>> " + requesterUri + "/" + logicalResourcesProvider.uri + " and " + aavm.lrpURI);
 		
 		if ( logicalResourcesProvider.uri.equals(requesterUri) ) {
 			logMessage("All logical resources providers have been requested. Unfortunately, the allocated AVM seems orphane.");
@@ -743,8 +746,6 @@ implements	LogicalResourcesProviderManagementI,
 		assert requesterUri != null;
 		assert avmCount > 0;
 		
-//		System.out.println("###### RQ : " + requesterUri + " count : " + avmCount );
-		
 		if ( logicalResourcesProvider.uri.equals(requesterUri) ) {
 			logMessage("All logical resources providers have been requested. "
 					+ "Unfortunately, (" + avmCount + ") cores for allocated (" + avmCount + ") avms are unavailables");
@@ -760,10 +761,6 @@ implements	LogicalResourcesProviderManagementI,
 		
 		AllocatedApplicationVM[] allocAVMs = new AllocatedApplicationVM[avmCount];
 		int preallocated = 0;
-		
-//		System.out.println("avm count : " + avmCount);
-//		System.out.println("waiting avm : " + waitingAVM.size());
-//		System.out.println("refs avm : " + allocatedAVMs.size());
 		
 		if (waitingAVM.size() > 0) {
 			for ( int i = 0; i < avmCount && !waitingAVM.isEmpty(); i++, preallocated++) {
@@ -833,9 +830,6 @@ implements	LogicalResourcesProviderManagementI,
 				notProvided.add(avms[i]);
 			}
 		}
-		
-//		System.out.println(provided.size());
-//		System.out.println(notProvided.size());
 		
 		List<AllocatedApplicationVM> released = new ArrayList<>();
 		
@@ -1185,7 +1179,7 @@ implements	LogicalResourcesProviderManagementI,
 			List<AllocatedCore> list = (List<AllocatedCore>) lrpds.getAllocatedCores(aavm);
 			
 			sb.append("\t\t").append(aavm.avmURI);
-			if (waitingAVM.contains(aavm))
+			if (waitingAVM.contains(aavm)) // L'AVM est en train de dormir
 				sb.append("(Zzz)");
 			sb.append(" : ").append(list.size());
 			if ( (i++ % 4) == 0 )

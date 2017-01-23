@@ -32,6 +32,7 @@ import fr.upmc.javassist.DynamicConnectorFactory;
  *
  */
 
+@Deprecated /** N'est plus géré avec la refonte du modèle au moment de l'étape 2 **/
 public class AdmissionControllerTestJavassist extends AbstractCVM {
 
 	protected final String admissionControllerURI = "admissionController";

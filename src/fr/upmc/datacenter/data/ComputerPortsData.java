@@ -3,6 +3,14 @@ package fr.upmc.datacenter.data;
 import java.util.List;
 
 import fr.upmc.datacenter.data.interfaces.ComputerPortsDataI;
+import fr.upmc.datacenter.hardware.computer.extended.Computer;
+
+/**
+ * Données de ports d'entrée du {@link Computer}
+ * 
+ * @author Daniel RADEAU
+ *
+ */
 
 public class ComputerPortsData 
 extends 	AbstractData

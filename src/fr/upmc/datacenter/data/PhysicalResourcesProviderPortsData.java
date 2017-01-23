@@ -3,6 +3,14 @@ package fr.upmc.datacenter.data;
 import java.util.List;
 
 import fr.upmc.datacenter.data.interfaces.PhysicalResourcesProviderPortsDataI;
+import fr.upmc.datacenter.providers.resources.physical.PhysicalResourcesProvider;
+
+/**
+ * Données de ports d'entrée du {@link PhysicalResourcesProvider}
+ * 
+ * @author Daniel RADEAU
+ *
+ */
 
 public class PhysicalResourcesProviderPortsData
 extends		AbstractData

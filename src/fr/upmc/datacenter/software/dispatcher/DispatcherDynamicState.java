@@ -7,6 +7,13 @@ import java.util.Map;
 import fr.upmc.datacenter.software.dispatcher.interfaces.DispatcherDynamicStateI;
 import fr.upmc.datacenter.software.dispatcher.statistics.ExponentialAverage;
 
+/**
+ * Bloc de donnée représentatif de l'état dynamique du répartiteur de requêtes
+ * 
+ * @author Daniel RADEAU
+ *
+ */
+
 public class DispatcherDynamicState 
 	implements 
 		DispatcherDynamicStateI

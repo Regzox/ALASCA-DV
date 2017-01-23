@@ -10,7 +10,6 @@ import fr.upmc.components.cvm.AbstractCVM;
 import fr.upmc.components.ports.PortI;
 import fr.upmc.datacenter.connectors.ControlledDataConnector;
 import fr.upmc.datacenter.data.interfaces.LogicalResourcesProviderPortsDataI;
-import fr.upmc.datacenter.data.interfaces.PerformanceControllerPortsDataI;
 import fr.upmc.datacenter.interfaces.ControlledDataRequiredI.ControlledPullI;
 import fr.upmc.datacenter.providers.resources.exceptions.NoApplicationVMException;
 import fr.upmc.datacenter.providers.resources.logical.AllocatedApplicationVM;
@@ -47,6 +46,38 @@ import fr.upmc.datacenterclient.requestgenerator.connectors.RequestGeneratorMana
 import fr.upmc.datacenterclient.requestgenerator.interfaces.RequestGeneratorManagementI;
 import fr.upmc.datacenterclient.requestgenerator.ports.RequestGeneratorManagementOutboundPort;
 import fr.upmc.nodes.ComponentDataNode;
+
+/**
+ * Contrôleur de performances
+ * 
+ * Le contrôleur de performances est le garant du bon fonctionnement d'un application et de ses attributions en ressources.
+ * Il est l'interlocuteur direct du fournisseur de resources logiques avec lequel il n'echange qu'en terme de machine virtuelle
+ * allouée (il n'a aucune connaissance direct du nombre de cores alloués). Toute information est tirée de l'état initial et des 
+ * demandes/retours au fournisseur de ressources logiques.
+ * 
+ * Le contrôleur de performances va venir se connecter au port de services du fournisseur de ressources logiques pour faire appel
+ * aux actions sur les machines virtuelles allouées proposé par celui-ci.
+ * 
+ * Quant à lui le fournisseur de ressources logiques va être connecté au contrôleur pour notifier qu'un coeur de machien virtuelle 
+ * a bien été libéré.
+ * 
+ * Le contrôtleur de performances aura en charge le générateur de requêtes qu'il lancera automatiquement à sa création et le répartiteur
+ * de requêtes qui s'assurera de la transmission des requêtes générées aux machines virtuelles allouées.
+ * 
+ * Le contrôleur de perfomances sera en mesure de faire varier, les fréquences des coeurs sur lesquels les machines virtuelles tournent,
+ * les nombre de coeurs par machines virtuelles s'étallant entre un seuil minimum et maximum et également le nombre de machines virtuelles
+ * allant de une machine au minimum, au maximum de resources disponible du datacenter.
+ * 
+ * Une loi de contrôle est directement en charge de des actions entreprises sur les machines virtuelles tournant sous les répatiteurs de requêtes.
+ * 
+ * Un seuil de coeurs maximum allouables a été définit pour donner du sens à l'opération d'allocation de machines virtuelle, sinon quoi
+ * on aurait simplement pu allouer une machine virtuelle par ordinateur et faire varier uniquement les fréquences et les nombres de coeurs.
+ * 
+ * (Pour des raisons de temps de développement, la version de contrôleurs de performances multi-applications n'a pas été implantée)
+ * 
+ * @author Daniel RADEAU
+ *
+ */
 
 public class PerformanceController 
 extends 	AbstractComponent
@@ -193,18 +224,6 @@ implements 	PerformanceControllerI,
 
 		performanceController.disconnect(lrpsopURI);
 		performanceController.findByURI(Branch.LOGICAL_RESOURCES_PROVIDERS).removeChild(lrpdn);
-	}
-
-	@Override
-	public void connectPerformanceController(PerformanceControllerPortsDataI cpdi) throws Exception {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void disconnectPerformanceController(PerformanceControllerPortsDataI cpdi) throws Exception {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
@@ -432,6 +451,21 @@ implements 	PerformanceControllerI,
 		logMessage(tickString());
 		
 		try {
+			
+			/**
+			 * Système de sécurité, détection des bugs.
+			 * 
+			 * Si pendant un certain nombre de ticks (application de la loi de contrôle) une
+			 * machine virtuelle reste dans le même état, alors on la considère comme défaillante
+			 * et on met fin à la simulation.
+			 * 
+			 * Le critère d'arrêt de la simulation ont été fixé pour une simulation tournant avec un cycle de contrôle
+			 * de l'ordre de 1 seconde. Normalement la règle reste valide pour tout cycle supérieur en délai de répétition.
+			 * Dans le cas où la fréquence du cycle de contrôle augmenterait au delà d'un application par secondes
+			 * on peut se retrouver avec des faux positifs car la vérification serait réalisée trop de fois pour qu'une 
+			 * requête de taille important soit traitée entièrement dans le cas d'une exécution mono-coeur. 
+			 * 
+			 */
 			
 			if ( logs.size() > 20 ) {
 

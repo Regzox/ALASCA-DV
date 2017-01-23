@@ -2,6 +2,13 @@ package fr.upmc.datacenter.software.controllers.performance;
 
 import java.io.Serializable;
 
+/**
+ * Jeton d'allocation du générateur de requêtes.
+ * 
+ * @author Daniel RADEAU
+ *
+ */
+
 public class AllocatedRequestGenerator implements Serializable {
 
 	private static final long serialVersionUID = -6370750753354249999L;

@@ -72,6 +72,7 @@ AdmissionControllerManagementI
 
 		admissionController.handleRequestSync(new ComponentService<Void>() {
 
+			@SuppressWarnings("deprecation")
 			@Override
 			public Void call() throws Exception {
 				admissionController.submitApplication(application, submissionInterface);

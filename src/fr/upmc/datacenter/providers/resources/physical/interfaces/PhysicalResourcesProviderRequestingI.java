@@ -4,6 +4,14 @@ import fr.upmc.components.interfaces.OfferedI;
 import fr.upmc.components.interfaces.RequiredI;
 import fr.upmc.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.upmc.datacenter.providers.resources.interfaces.RequestingI;
+import fr.upmc.datacenter.providers.resources.physical.PhysicalResourcesProvider;
+
+/**
+ * Interface de requêtage entre {@link PhysicalResourcesProvider}
+ * 
+ * @author Daniel RADEAU
+ *
+ */
 
 public interface PhysicalResourcesProviderRequestingI extends RequestingI, OfferedI, RequiredI {
 

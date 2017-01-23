@@ -18,6 +18,8 @@ import fr.upmc.datacenter.software.dispatcher.time.Chronometer;
  * permettant de retrouver le composant à partir d'une seule information dessus et ce quelque soit son emplacement
  * dans le graphe.
  * 
+ * (non optimisé pour la recherche sur très grand nombre de noeuds car ce n'est pas la problèmatique du projet)
+ * 
  * @author Daniel RADEAU
  *
  */

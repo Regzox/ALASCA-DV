@@ -2,6 +2,13 @@ package fr.upmc.datacenter.providers.resources.logical;
 
 import java.io.Serializable;
 
+/**
+ * Jeton d'allocation de machine virtuelle
+ * 
+ * @author Daniel RADEAU
+ *
+ */
+
 public class AllocatedApplicationVM implements Serializable {
 
 	private static final long serialVersionUID = 6067423750124007482L;

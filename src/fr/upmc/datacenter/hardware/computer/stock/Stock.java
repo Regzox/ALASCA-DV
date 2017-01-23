@@ -145,17 +145,37 @@ public class Stock {
 		return computersURI;
 	}
 
+	/**
+	 * Retourne la map des uris de ports d'entrée de services de tous les ordinateurs du parc informatique
+	 * @return
+	 */
+	
 	public Map<String, String> getComputerServicesInboundPortURIMap() {
 		return computerServicesInboundPortURIMap;
 	}
 
+	/**
+	 * Retourne la map des uris de ports d'entrée de données statiques de tous les ordinateurs du parc informatique
+	 * @return
+	 */
+	
 	public Map<String, String> getComputerStaticStateDataInboundPortURIMap() {
 		return computerStaticStateDataInboundPortURIMap;
 	}
 
+	/**
+	 * Retourne la map des uris de ports d'entrée de données dynamiques de tous les ordinateurs du parc informatique
+	 * @return
+	 */
+	
 	public Map<String, String> getComputerDynamicStateDataInboundPortURIMap() {
 		return computerDynamicStateDataInboundPortURIMap;
 	}
+	
+	/**
+	 * Retourne la map des uris de ports d'entrée de libération de coeur de tous les ordinateurs du parc informatique
+	 * @return
+	 */
 	
 	public Map<String, String> getComputerCoreReleasingInboundPortURIMap() {
 		return computerCoreReleasingInboundPortURIMap;

@@ -4,7 +4,6 @@ import fr.upmc.components.ComponentI;
 import fr.upmc.components.ComponentI.ComponentService;
 import fr.upmc.components.ports.AbstractInboundPort;
 import fr.upmc.datacenter.data.interfaces.LogicalResourcesProviderPortsDataI;
-import fr.upmc.datacenter.data.interfaces.PerformanceControllerPortsDataI;
 import fr.upmc.datacenter.software.controllers.performance.PerformanceController;
 import fr.upmc.datacenter.software.controllers.performance.interfaces.PerformanceControllerManagementI;
 
@@ -48,36 +47,6 @@ implements PerformanceControllerManagementI
 			@Override
 			public Void call() throws Exception {
 				pc.disconnectLogicalResourcesProvider(lrppdi);
-				return null;
-			}
-
-		});
-	}
-
-	@Override
-	public void connectPerformanceController(PerformanceControllerPortsDataI cpdi) throws Exception {
-		final PerformanceController pc = (PerformanceController) this.owner;
-
-		pc.handleRequestSync(new ComponentService<Void>() {
-
-			@Override
-			public Void call() throws Exception {
-				pc.connectPerformanceController(cpdi);
-				return null;
-			}
-
-		});
-	}
-
-	@Override
-	public void disconnectPerformanceController(PerformanceControllerPortsDataI cpdi) throws Exception {
-		final PerformanceController pc = (PerformanceController) this.owner;
-
-		pc.handleRequestSync(new ComponentService<Void>() {
-
-			@Override
-			public Void call() throws Exception {
-				pc.disconnectPerformanceController(cpdi);
 				return null;
 			}
 

@@ -5,6 +5,13 @@ import java.util.List;
 
 import fr.upmc.datacenter.data.interfaces.PortsDataI;
 
+/**
+ * Abstraction d'un contenent de données sur les ports d'entrées des composants
+ * 
+ * @author Daniel RADEAU
+ *
+ */
+
 public abstract class AbstractData
 	implements PortsDataI
 {

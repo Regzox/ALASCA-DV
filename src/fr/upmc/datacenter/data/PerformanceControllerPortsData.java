@@ -3,6 +3,14 @@ package fr.upmc.datacenter.data;
 import java.util.List;
 
 import fr.upmc.datacenter.data.interfaces.PerformanceControllerPortsDataI;
+import fr.upmc.datacenter.software.controllers.performance.PerformanceController;
+
+/**
+ * Données de ports d'entrée du {@link PerformanceController}
+ * 
+ * @author Daniel RADEAU
+ *
+ */
 
 public class PerformanceControllerPortsData
 extends AbstractData

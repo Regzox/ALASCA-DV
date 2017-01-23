@@ -5,6 +5,15 @@ import fr.upmc.components.interfaces.RequiredI;
 import fr.upmc.datacenter.data.interfaces.LogicalResourcesProviderPortsDataI;
 import fr.upmc.datacenter.data.interfaces.PerformanceControllerPortsDataI;
 import fr.upmc.datacenter.data.interfaces.PhysicalResourcesProviderPortsDataI;
+import fr.upmc.datacenter.providers.resources.logical.LogicalResourceProvider;
+
+/**
+ * Interface de gestion du {@link LogicalResourceProvider}.
+ * Utilisé pour réaliser les interconnexions externes au composant
+ * 
+ * @author Daniel RADEAU
+ *
+ */
 
 public interface LogicalResourcesProviderManagementI 
 extends RequiredI, OfferedI
