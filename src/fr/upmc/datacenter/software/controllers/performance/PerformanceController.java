@@ -50,15 +50,15 @@ import fr.upmc.nodes.ComponentDataNode;
 /**
  * Contrôleur de performances
  * 
- * Le contrôleur de performances est le garant du bon fonctionnement d'un application et de ses attributions en ressources.
- * Il est l'interlocuteur direct du fournisseur de resources logiques avec lequel il n'echange qu'en terme de machine virtuelle
- * allouée (il n'a aucune connaissance direct du nombre de cores alloués). Toute information est tirée de l'état initial et des 
+ * Le contrôleur de performances est le garant du bon fonctionnement d'une application et de ses attributions en ressources.
+ * Il est l'interlocuteur direct du fournisseur de ressources logiques avec lequel il n'echange qu'en termes de machine virtuelle
+ * allouée (il n'a aucune connaissance directe du nombre de cores alloués). Toute information est tirée de l'état initial et des 
  * demandes/retours au fournisseur de ressources logiques.
  * 
  * Le contrôleur de performances va venir se connecter au port de services du fournisseur de ressources logiques pour faire appel
- * aux actions sur les machines virtuelles allouées proposé par celui-ci.
+ * aux actions sur les machines virtuelles allouées proposées par celui-ci.
  * 
- * Quant à lui le fournisseur de ressources logiques va être connecté au contrôleur pour notifier qu'un coeur de machien virtuelle 
+ * Quant à lui le fournisseur de ressources logiques va être connecté au contrôleur pour notifier qu'un coeur de machines virtuelles 
  * a bien été libéré.
  * 
  * Le contrôtleur de performances aura en charge le générateur de requêtes qu'il lancera automatiquement à sa création et le répartiteur
@@ -68,9 +68,9 @@ import fr.upmc.nodes.ComponentDataNode;
  * les nombre de coeurs par machines virtuelles s'étallant entre un seuil minimum et maximum et également le nombre de machines virtuelles
  * allant de une machine au minimum, au maximum de resources disponible du datacenter.
  * 
- * Une loi de contrôle est directement en charge de des actions entreprises sur les machines virtuelles tournant sous les répatiteurs de requêtes.
+ * Une loi de contrôle est directement en charge de des actions entreprises sur les machines virtuelles tournant sous les répartiteurs de requêtes.
  * 
- * Un seuil de coeurs maximum allouables a été définit pour donner du sens à l'opération d'allocation de machines virtuelle, sinon quoi
+ * Un seuil de coeurs maximum allouables a été défini pour donner du sens à l'opération d'allocation de machines virtuelles, sinon quoi
  * on aurait simplement pu allouer une machine virtuelle par ordinateur et faire varier uniquement les fréquences et les nombres de coeurs.
  * 
  * (Pour des raisons de temps de développement, la version de contrôleurs de performances multi-applications n'a pas été implantée)
@@ -96,7 +96,7 @@ implements 	PerformanceControllerI,
 
 	List<DispatcherDynamicStateI> logs;
 
-	private static int ticking = 0;
+	private int ticking = 0;
 
 	/**
 	 * Compte le nombre d'AVM en attente de libération par le {@link Dispatcher}. </br>
@@ -467,66 +467,66 @@ implements 	PerformanceControllerI,
 			 * 
 			 */
 			
-			if ( logs.size() > 20 ) {
-
-				DispatcherDynamicStateI mainLog = logs.remove(0);
-				boolean isFrozen = true;
-
-				for ( String rsopURI : mainLog.getExponentialAverages().keySet() ) {
-					
-					for ( DispatcherDynamicStateI log : logs ) {
-												
-						if (	(mainLog.getExponentialAverages().get(rsopURI) == null) |
-								(mainLog.getPendingRequests().get(rsopURI) == null) |
-								(mainLog.getPerformedRequests().get(rsopURI) == null)	) {
-							isFrozen = false;
-							break;
-						}
-
-						if (	(log.getExponentialAverages().get(rsopURI) == null) |
-								(log.getPendingRequests().get(rsopURI) == null) |
-								(log.getPerformedRequests().get(rsopURI) == null)	) {
-							isFrozen = false;
-							break;
-						}
-
-						isFrozen &= 
-								( mainLog.getExponentialAverages().get(rsopURI).getValue().getMilliseconds() == log.getExponentialAverages().get(rsopURI).getValue().getMilliseconds() ) &
-								( mainLog.getPendingRequests().get(rsopURI).size() == log.getPendingRequests().get(rsopURI).size() ) &
-								( mainLog.getPerformedRequests().get(rsopURI) == log.getPerformedRequests().get(rsopURI) );
-						
-					}
-					
-					if ( isFrozen ) {
-
-						ComponentDataNode avmdn = performanceController.findByConnectedPort(rsopURI);
-
-						if ( avmdn == null )
-							throw new Exception("L'application VM à surment dû être libérée mais est toujours en terminaison");
-
-						AllocatedApplicationVM aavm = null;		
-
-						for ( AllocatedApplicationVM elt : pcds.getAllocatedApplicationVMs() ) {
-
-							if ( avmdn.uri.equals(elt.avmURI) ) {
-								aavm = elt;
-								break;
-							}
-						}
-
-						if ( aavm == null ) {
-							System.out.println(performanceController.graphToString());
-							throw new Exception("AAVM null !");
-
-						}
-
-						System.err.println(aavm.avmURI + " is frozen ! Simulation ended ");
-						System.exit(-1);
-					}
-					
-				}
-
-			}
+//			if ( logs.size() > 20 ) {
+//
+//				DispatcherDynamicStateI mainLog = logs.remove(0);
+//				boolean isFrozen = true;
+//
+//				for ( String rsopURI : mainLog.getExponentialAverages().keySet() ) {
+//					
+//					for ( DispatcherDynamicStateI log : logs ) {
+//												
+//						if (	(mainLog.getExponentialAverages().get(rsopURI) == null) |
+//								(mainLog.getPendingRequests().get(rsopURI) == null) |
+//								(mainLog.getPerformedRequests().get(rsopURI) == null)	) {
+//							isFrozen = false;
+//							break;
+//						}
+//
+//						if (	(log.getExponentialAverages().get(rsopURI) == null) |
+//								(log.getPendingRequests().get(rsopURI) == null) |
+//								(log.getPerformedRequests().get(rsopURI) == null)	) {
+//							isFrozen = false;
+//							break;
+//						}
+//
+//						isFrozen &= 
+//								( mainLog.getExponentialAverages().get(rsopURI).getValue().getMilliseconds() == log.getExponentialAverages().get(rsopURI).getValue().getMilliseconds() ) &
+//								( mainLog.getPendingRequests().get(rsopURI).size() == log.getPendingRequests().get(rsopURI).size() ) &
+//								( mainLog.getPerformedRequests().get(rsopURI) == log.getPerformedRequests().get(rsopURI) );
+//						
+//					}
+//					
+//					if ( isFrozen ) {
+//
+//						ComponentDataNode avmdn = performanceController.findByConnectedPort(rsopURI);
+//
+//						if ( avmdn == null )
+//							throw new Exception("L'application VM à surment dû être libérée mais est toujours en terminaison");
+//
+//						AllocatedApplicationVM aavm = null;		
+//
+//						for ( AllocatedApplicationVM elt : pcds.getAllocatedApplicationVMs() ) {
+//
+//							if ( avmdn.uri.equals(elt.avmURI) ) {
+//								aavm = elt;
+//								break;
+//							}
+//						}
+//
+//						if ( aavm == null ) {
+//							System.out.println(performanceController.graphToString());
+//							throw new Exception("AAVM null !");
+//
+//						}						
+//
+//						System.err.println(aavm.avmURI + " is frozen ! Simulation ended ");
+//						System.exit(-1);
+//					}
+//					
+//				}
+//
+//			}
 
 			if ( dsp == null )
 				return;

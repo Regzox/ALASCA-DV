@@ -498,14 +498,21 @@ implements	LogicalResourcesProviderManagementI,
 				
 				if ( lrpds.getAllocatedCores(allocAVMs[i]).size() == 0 ) {
 					PhysicalResourcesProviderServicesOutboundPort prpsop = (PhysicalResourcesProviderServicesOutboundPort) findPortFromURI(prpsopURI);
-					AllocatedCore[] acs = prpsop.allocateCores(1);
-					logMessage("(" + acs.length + ") cores are been allocated for [" + allocAVMs[i].avmURI + "]");
-					List<AllocatedCore> acsList = new ArrayList<>();
-					acsList.add(acs[0]);
-					lrpds.addAllocatedCores(allocAVMs[i], acsList.toArray(new AllocatedCore[0]));
-					String avmmopURI = logicalResourcesProvider.getPortConnectedTo(allocAVMs[i].avmmipURI);
-					ApplicationVMManagementOutboundPort avmmop = (ApplicationVMManagementOutboundPort) findPortFromURI(avmmopURI);
-					avmmop.allocateCores(acs);
+					try {
+						AllocatedCore[] acs = prpsop.allocateCores(1);
+						logMessage("(" + acs.length + ") cores are been allocated for [" + allocAVMs[i].avmURI + "]");
+						List<AllocatedCore> acsList = new ArrayList<>();
+						acsList.add(acs[0]);
+						lrpds.addAllocatedCores(allocAVMs[i], acsList.toArray(new AllocatedCore[0]));
+						String avmmopURI = logicalResourcesProvider.getPortConnectedTo(allocAVMs[i].avmmipURI);
+						ApplicationVMManagementOutboundPort avmmop = (ApplicationVMManagementOutboundPort) findPortFromURI(avmmopURI);
+						avmmop.allocateCores(acs);
+					} catch (ExecutionException e) {
+						if ( !e.getMessage().contains(NoCoreException.class.getCanonicalName()) )
+							throw e;
+						logMessage("No core for our waiting avm");
+						// CAPTURE DU CAS OU AUCUN COEUR N'EST DISPO ET QUE DES WAITING AVM SONT PRESENTES
+					}
 				}
 			}
 		}
@@ -770,11 +777,21 @@ implements	LogicalResourcesProviderManagementI,
 				
 				if ( lrpds.getAllocatedCores(allocAVMs[i]).size() == 0 ) {
 					PhysicalResourcesProviderServicesOutboundPort prpsop = (PhysicalResourcesProviderServicesOutboundPort) findPortFromURI(prpsopURI);
-					AllocatedCore[] acs = prpsop.allocateCores(1);
-					lrpds.addAllocatedCores(allocAVMs[i], acs);
-					String avmmopURI = logicalResourcesProvider.getPortConnectedTo(allocAVMs[i].avmmipURI);
-					ApplicationVMManagementOutboundPort avmmop = (ApplicationVMManagementOutboundPort) findPortFromURI(avmmopURI);
-					avmmop.allocateCores(acs);
+					try {
+						AllocatedCore[] acs = prpsop.allocateCores(1);
+						logMessage("(" + acs.length + ") cores are been allocated for [" + allocAVMs[i].avmURI + "]");
+						List<AllocatedCore> acsList = new ArrayList<>();
+						acsList.add(acs[0]);
+						lrpds.addAllocatedCores(allocAVMs[i], acsList.toArray(new AllocatedCore[0]));
+						String avmmopURI = logicalResourcesProvider.getPortConnectedTo(allocAVMs[i].avmmipURI);
+						ApplicationVMManagementOutboundPort avmmop = (ApplicationVMManagementOutboundPort) findPortFromURI(avmmopURI);
+						avmmop.allocateCores(acs);
+					} catch (ExecutionException e) {
+						if ( !e.getMessage().contains(NoCoreException.class.getCanonicalName()) )
+							throw e;
+						logMessage("No core for our waiting avm");
+						// CAPTURE DU CAS OU AUCUN COEUR N'EST DISPO ET QUE DES WAITING AVM SONT PRESENTES
+					}
 				}
 			}
 		}

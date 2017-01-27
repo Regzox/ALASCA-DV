@@ -47,5 +47,4 @@ public class AdmissionControllerUnitTest {
 		Thread.sleep(30 * 60 * 1000);
 	}
 	
-	
 }
