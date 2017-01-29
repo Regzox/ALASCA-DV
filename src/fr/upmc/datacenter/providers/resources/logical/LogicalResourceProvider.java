@@ -66,22 +66,22 @@ import fr.upmc.nodes.ComponentDataNode;
  * Toute machine virtuelle allouée peut être restituée par le composant client, il sera placé dans un vecteur de mise en attente
  * et tous ses coeurs seront libérés.Pour ne par générer des machines virtuelles en masse, au moment d'une demande d'allocation 
  * le fournisseur de ressources logiques extrait une machine virtuelle en attente et lui attribue un coeur si disponible. Sinon une 
- * nouvelle machine vituelle est créée. Le fournisseur de ressources logiques possède les machine virtuelle qu'il créer et est le seul
+ * nouvelle machine vituelle est créée. Le fournisseur de ressources logiques possède les machines virtuelles qu'il créer et est le seul
  * ayant droit de réaliser des actions dessus. Les clients et les autres fournisseurs de ressources logiques communiquent des jetons 
- * d'allocation identifiant de manière unique une resource logique sur le réseau. 
- * Un fournisseur de ressources logiques peut venir à manquer de ressources, celà est le cas quand so fournisseur de ressources physique
+ * d'allocation, identifiant de manière unique une resource logique sur le réseau. 
+ * Un fournisseur de ressources logiques peut venir à manquer de ressources, celà est le cas quand son fournisseur de ressources physiques
  * n'est plus capable de lui attribuer des jetons d'allocation de coeurs. Pour remédier à ce problème, les différents fournisseurs de 
  * ressources logiques doivent être connectés en anneau. De cette connexion en anneau nait la possibilité pour un fournisseur de ressources
  * logiques de réquisitionner des ressources inexploitées issues d'autres fournisseurs pour son composant client.
- * La totalité des méthodes de manipulation de machine virtuelle au sein du fournisseur de ressources logiques sont dites @Ring soit qu'elle
+ * La totalité des méthodes de manipulation de machines virtuelles au sein du fournisseur de ressources logiques sont dites @Ring, soit qu'elles
  * permettent l'appel au réseau pour la réalisation de leurs tâches. Il est donc possible d'appeler une action sur une machine virtuelle détenue 
- * par un autre fournisseur. Si jamais une action ammène à un tour complet du réseau en anneau, alors nous nous trouvons dans le cas où jeton
+ * par un autre fournisseur. Si jamais une action amène à un tour complet du réseau en anneau, alors nous nous trouvons dans le cas où le jeton
  * d'allocation fournit ne retrouve pas son créateur et donc que la machine virtuelle à laquelle il fait référence est orpheline. Dans ce
  * cas là, nous nous trouvons dans un cas incohérent et non gérable pouvant soit être induit par une erreur de connexion 
  * (pas seulement un et un seul cycle ou cycle non hamiltonien) ou encore que tout simplement des fournisseurs sont tombées.
  * Le fournisseur met en place un mécanisme non trivial comparativement aux connexions port à port réalisés par la plupart des composants
- * d'écrit dans {@link LogicalResourcesProviderCoreReleasingNotifyBackI} permettant aux client direct d'être notifié d'une demande sur une 
- * action sur machine virtuelle non locale. * 
+ * décrits dans {@link LogicalResourcesProviderCoreReleasingNotifyBackI} permettant aux client direct d'être notifié d'une demande 
+ * d'action sur machine virtuelle non locale. 
  *  
  * </p>
  * @author Daniel RADEAU

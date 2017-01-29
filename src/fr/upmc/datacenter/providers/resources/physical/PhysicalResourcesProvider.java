@@ -59,10 +59,10 @@ import fr.upmc.nodes.ComponentDataNode;
 /**
  * Fournisseur de resources physiques. ({@link PhysicalResourcesProvider})<br><br>
  * Les fournisseurs de resources physiques sont en commmunication directe avec les {@link Computer}.<br>
- * Ils propose une interface de services {@link PhysicalResourcesProviderServicesI} permettant de réaliser des oppérations sur les {@link Core}
+ * Ils proposent une interface de services {@link PhysicalResourcesProviderServicesI} permettant de réaliser des opérations sur les {@link Core}
  * des {@link Processor} contenus dans les {@link Computer} auquels ils sont connectés.<br>
- * De plus les fournisseurs de resources physiques ont la possibilité d'être connectés en anneaux.<br>
- * Pour celà ils disposent d'un {@link PhysicalResourcesProviderRequestingInboundPort} au peut se connecter
+ * De plus les fournisseurs de resources physiques ont la possibilité d'être connectés en anneau.<br>
+ * Pour celà ils disposent d'un {@link PhysicalResourcesProviderRequestingInboundPort} au peut se connecter à
  * un autre fournisseur de resources physiques. Cette connexion en anneau permet de la même façon qu'un autre
  * composant serait connecté au {@link PhysicalResourcesProviderServicesInboundPort} de demander une action à 
  * réaliser sur les {@link Core}.<br> 

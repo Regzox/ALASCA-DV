@@ -25,7 +25,7 @@ import fr.upmc.nodes.ComponentDataNode;
 /**
  * Contrôleur d'admission.
  * 
- * Le contrôleur d'admission gère les demande d'hébergement des applications externes.
+ * Le contrôleur d'admission gère les demandes d'hébergement des applications externes.
  * Pour se faire le contrôleur d'admission doit avoir connaissance d'un ensemble de fournisseurs de ressources logiques sur lesquels
  * attacher un nouveau contrôleur de performances.
  * Les fournisseurs de ressources physiques et logiques doivent être tous interconnectés avant l'instanciation du contrôleur d'admission.
@@ -33,7 +33,7 @@ import fr.upmc.nodes.ComponentDataNode;
  * Pour un fournisseur de ressources logiques, seul un contrôleur de performances peut être raccordé.
  * 
  * Puisque les fournisseurs de ressources en général sont interconnectés en anneaux, un pour les physiques et un autre pour les logiques,
- * si une application vient à manquer de puissance de calcul dans leur chaine directen, les participants à l'anneau peuvent être mis à contribution.
+ * si une application vient à manquer de puissance de calcul dans leur chaine directe, les participants à l'anneau peuvent être mis à contribution.
  * 
  * 
  * @author Daniel RADEAU

@@ -18,9 +18,9 @@ import fr.upmc.datacenter.software.ports.CoreReleasingNotificationOutboundPort;
  * Extension de la classe {@link fr.upmc.datacenter.software.applicationvm.ApplicationVM}.
  * Il est maintenant possible de réaliser des désallocation de coeurs par le biais du port {@link ApplicationVMCoreReleasingInboundPort}.
  * Les coeurs à stopper sont placés dans une liste de coeurs en attente de terminaison.
- * En interne à chaque notification de requête les coeurs de la liste sont observés pour voir lequel est bien passé en idle.
+ * En interne à chaque notification de requête, les coeurs de la liste sont observés pour voir lesquels sont bien passés en idle.
  * Les coeurs en attente de terminaison ne peuvent plus être utilisés pour traiter une nouvelle requête.
- * Un coeur idle et dans la liste des terminaison est retiré des {@link AllocatedCore} et sera donc désalloué de manière effective.
+ * Un coeur idle et dans la liste des terminaisons est retiré des {@link AllocatedCore} et sera donc désalloué de manière effective.
  * Entre une demande de libération de coeur et sa libération effective, il s'écoule un temps dépendant du restant d'instructions 
  * de la requête à exécuter sur ce même coeur au moment de la demande de libération.
  * Ce temps pouvant ne pas être négligeable en cas de requêtes lourdes, un nouveau port de notification de terminaison est ajouté à la classe {@link ApplicationVM}.

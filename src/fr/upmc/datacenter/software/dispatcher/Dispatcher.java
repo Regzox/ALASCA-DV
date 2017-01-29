@@ -39,17 +39,17 @@ import fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort;
 /**
  * Répartiteur de requêtes dont le but est de répartir les requêtes reçues depuis les générateurs de requêtes
  * pour qu'elles soient exécutées au sein des machine virtuelles connectées.
- * Un répartiteur peut recevoir autant de machine virtuelle qu'il désir.
+ * Un répartiteur peut recevoir autant de machines virtuelles qu'il désir.
  * Il sera en mesure à chaque requête de choisir la machine virtuelle la moins sollicitée grace aux informations
  * qu'il collecte entre les réceptions/notifications.
  * Il va également produire des données sur son état dynamique pour que le contrôleur de perfomance dont il dépend soit
  * en mesure de prendre des décisions en vue de l'augmentation ou diminution des ressources allouées.
- * Les données produites sont les temps exponentiels moyens réalisés par chacune des machine virtuelle entre l'admission d'une
- * requête et sa notification de terminaison, le nombre de requêtes passée du côté machine virtuelle dont on ignore l'état d'avancement
- * mais qui ne sont pas encore revenues et le nombre de total de requêtes traitées par machine virtuelles.
- * Le processus de libération d'une machine virtuelle passe par l'attente que celle-ci ai terminé toute ses requêtes à traiter ce 
- * qui peut mettre un certain temps surtout si la machine virtuelle a été bourrée. Un toutes les requêtes traitées, la machine est 
- * libérée du côté répartiteur et devra être libérée en fournisseur de ressources logiques et physique.
+ * Les données produites sont les temps exponentiels moyens réalisés par chacune des machines virtuelles entre l'admission d'une
+ * requête et sa notification de terminaison, le nombre de requêtes passées du côté machines virtuelles dont on ignore l'état d'avancement
+ * mais qui ne sont pas encore revenues et le nombre de total de requêtes traitées par machines virtuelles.
+ * Le processus de libération d'une machine virtuelle passe par l'attente que celle-ci ai terminée toutes ses requêtes à traiter ce 
+ * qui peut mettre un certain temps surtout si la machine virtuelle a été bourrée. Une fois toutes les requêtes traitées, la machine est 
+ * libérée du côté répartiteur et devra être libérée du côté fournisseur de ressources logiques et physiques.
  * 
  * @author Daniel RADEAU
  *
